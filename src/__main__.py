@@ -1,17 +1,27 @@
-from Llm import GeminiProvider, LlmError, LLmOutput
+from Llm import GeminiProvider, LlmError, LLmOutput, OpenRouterProvider
 
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
 
-API_KEYS = [
+GEMINI_API_KEYS = [
     os.environ["GEMINI_KEY_1"],
     os.environ["GEMINI_KEY_2"]
 ]
 
-model = GeminiProvider(
-    API_KEYS
+OPEN_ROUTER_API_KEYS = [
+    os.environ["OPEN_ROUTER_KEY_1"],
+    os.environ["OPEN_ROUTER_KEY_2"],
+    os.environ["OPEN_ROUTER_KEY_3"],
+    os.environ["OPEN_ROUTER_KEY_4"],
+    os.environ["OPEN_ROUTER_KEY_5"],
+    os.environ["OPEN_ROUTER_KEY_6"]
+]
+
+model = OpenRouterProvider(
+    OPEN_ROUTER_API_KEYS,
+    model_name="nex-agi/nex-n2.5-mini:free"
 )
 try:
     datas: LLmOutput = model.generate(
