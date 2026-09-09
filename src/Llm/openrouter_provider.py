@@ -1,6 +1,6 @@
 from .llm_provider_model import LLmOutput, LlmError
 from utils import current_milli_time
-import requests
+import requests  # type: ignore
 import json
 
 
@@ -61,13 +61,13 @@ class OpenRouterProvider:
                 data=json.dumps({
                     "model": self.model_name,
                     "messages": [
-                    {
-                        "role": "user",
-                        "content": prompt
-                    },
-                    ],
+                        {
+                            "role": "user",
+                            "content": prompt
+                        },
+                        ],
                     "reasoning": {"enabled": True}
-                })
+                    })
                 )
             reponse.raise_for_status()
             content = reponse.json()
@@ -84,5 +84,3 @@ class OpenRouterProvider:
             api_url=self.url,
             model_name=content["model"]
         )
-
-[{'index': 0, 'logprobs': None, 'finish_reason': 'stop', 'native_finish_reason': 'stop', 'message': {'role': 'assistant', 'content': '```python\ndef additionner(a, b):\n    return a + b\n\nprint(additionner(2, 3))  # Affiche 5\n```', 'refusal': None, 'reasoning': 'We need answer in French likely. User asks "Donne moi une fonction python qui permet d additionner deux nombres" Need provide simple function. No need tools. Ensure maybe mention usage. Final concise.\n', 'reasoning_details': [{'type': 'reasoning.text', 'text': 'We need answer in French likely. User asks "Donne moi une fonction python qui permet d additionner deux nombres" Need provide simple function. No need tools. Ensure maybe mention usage. Final concise.\n', 'format': 'unknown', 'index': 0}]}}]

@@ -19,6 +19,11 @@ OPEN_ROUTER_API_KEYS = [
     os.environ["OPEN_ROUTER_KEY_6"]
 ]
 
+model_1 = GeminiProvider(
+    OPEN_ROUTER_API_KEYS,
+    model_name="nex-agi/nex-n2.5-mini:free"
+)
+
 model = OpenRouterProvider(
     OPEN_ROUTER_API_KEYS,
     model_name="nex-agi/nex-n2.5-mini:free"
