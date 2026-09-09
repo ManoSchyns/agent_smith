@@ -1,4 +1,4 @@
-from .llm_provider_model import LLmOutput, LimitError
+from .llm_provider_model import LLmOutput, LlmError
 from google import genai
 from utils import current_milli_time
 
@@ -57,10 +57,10 @@ class GeminiProvider:
                 model=self.model_name,
                 input=prompt
             )
-        except Exception:
+        except Exception as e:
             if self.use_next_key():
                 return self.generate(prompt)
-            raise LimitError("Model usage limits reached.")
+            raise LlmError(e)
 
         return LLmOutput(
             content=content.output_text,
@@ -92,6 +92,6 @@ try:
     "Donne moi une fonction python qui permet d additionner deux nombres")
     if datas is not None:
         print(datas.content)
-except LimitError as e:
+except LlmError as e:
     print(e)
 """

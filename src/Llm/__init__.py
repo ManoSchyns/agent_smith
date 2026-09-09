@@ -1,5 +1,5 @@
 from .gemini_provider import GeminiProvider
-from .llm_provider_model import LimitError, LLmOutput
+from .llm_provider_model import LlmError, LLmOutput
 
 
-__all__ = ["GeminiProvider", "LimitError", "LLmOutput"]
+__all__ = ["GeminiProvider", "LlmError", "LLmOutput"]

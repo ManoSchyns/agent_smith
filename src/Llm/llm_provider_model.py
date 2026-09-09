@@ -17,7 +17,7 @@ class LLmProvider(Protocol):
         ...
 
 
-class LimitError(Exception):
+class LlmError(Exception):
     """
     Class to handle exceptions when the usage limit is reached
     """

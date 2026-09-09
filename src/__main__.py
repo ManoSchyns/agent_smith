@@ -1,4 +1,4 @@
-from Llm import GeminiProvider, LimitError, LLmOutput
+from Llm import GeminiProvider, LlmError, LLmOutput
 
 import os
 from dotenv import load_dotenv
@@ -18,5 +18,5 @@ try:
         "Donne moi une fonction python qui permet d additionner deux nombres")
     if datas is not None:
         print(datas.content)
-except LimitError as e:
+except LlmError as e:
     print(e)
