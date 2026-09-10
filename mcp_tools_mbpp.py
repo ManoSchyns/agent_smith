@@ -5,8 +5,8 @@ import sys
 mcp = MCPServer("A")
 
 @mcp.tool()
-def hello_world() -> None:
-    print("Hello World !")
+def hello_world() -> str:
+    return "Hello World !"
 
 
 if __name__ == "__main__":
