@@ -4,6 +4,7 @@ import sys
 
 mcp = MCPServer("A")
 
+
 @mcp.tool()
 def hello_world() -> str:
     return "Hello World !"

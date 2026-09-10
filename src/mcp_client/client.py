@@ -2,8 +2,6 @@ from typing import Any, Callable
 from contextlib import AsyncExitStack
 import httpx
 import asyncio
-from asyncio import CancelledError
-
 from mcp import ClientSession, StdioServerParameters, MCPError
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamable_http_client
@@ -51,8 +49,8 @@ class MCPClient:
             raise MCPClientError(
                 f"Transport inconnu : {self.transport}"
             )
-
-        await self.session.initialize()
+        if self.session:
+            await self.session.initialize()
 
     async def stdio_connect(self) -> None:
 
@@ -84,18 +82,18 @@ class MCPClient:
             ClientSession(read, write)
         )
 
-    async def list_tools(self) -> list[Any]:
+    async def list_tools(self) -> Any:
 
         if self.session is None:
             raise MCPClientError("Client non connecté")
 
-        result = await self.session.list_tools()
+        result: Any = await self.session.list_tools()
 
         return result.tools
 
     def make_callable(self, name: str) -> Callable:
 
-        async def tool_callable(**args) -> Any:
+        async def tool_callable(**args: dict) -> Any:
 
             if self.session is None:
                 raise MCPClientError(
@@ -125,8 +123,10 @@ class MCPClient:
 
         self.session = None
 
+
 if __name__ == "__main__":
-    async def test_agent():
+
+    async def test_agent() -> None:
 
         """client = MCPClient(
             "stdio",
@@ -141,7 +141,7 @@ if __name__ == "__main__":
             await client.connect()
             # Recuperation des outils
             data = await client.list_tools()
-            
+
             # Transforme en callable
             tools = client.get_tools_callable(data)
             # On appelle ceux correspondant
@@ -149,7 +149,7 @@ if __name__ == "__main__":
             print(result)
 
         except (MCPClientError, MCPError, httpx.ConnectError) as e:
-            print("Erreur lors de la connection :",e)
+            print("Erreur lors de la connection :", e)
         finally:
             await client.close()
     try:
