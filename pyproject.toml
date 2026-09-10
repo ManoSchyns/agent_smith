@@ -5,6 +5,7 @@ description = "AI agent that generates and executes code. The agent uses an MCP 
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "fire>=0.7.1",
     "google-genai>=2.22.0",
     "python-dotenv>=1.2.3",
     "requests>=2.34.2",

@@ -1,37 +1,30 @@
-from Llm import GeminiProvider, LlmError, LLmOutput, OpenRouterProvider
+from Llm import LlmError, LLmOutput
+from extraction import extract_code, ExtractError
+import fire
+from config import PROVIDER
 
-import os
-from dotenv import load_dotenv
+"""
+Exemple de fonctionnement d un agent
+"""
 
-load_dotenv()
 
-GEMINI_API_KEYS = [
-    os.environ["GEMINI_KEY_1"],
-    os.environ["GEMINI_KEY_2"]
-]
+def agent_example(prompt: str, model_name: str, provider_url: str) -> None:
+    try:
 
-OPEN_ROUTER_API_KEYS = [
-    os.environ["OPEN_ROUTER_KEY_1"],
-    os.environ["OPEN_ROUTER_KEY_2"],
-    os.environ["OPEN_ROUTER_KEY_3"],
-    os.environ["OPEN_ROUTER_KEY_4"],
-    os.environ["OPEN_ROUTER_KEY_5"],
-    os.environ["OPEN_ROUTER_KEY_6"]
-]
+        model = PROVIDER[provider_url](model_name=model_name)
+        datas: LLmOutput = model.generate(prompt)
+        print(extract_code(datas.content))
 
-model_1 = GeminiProvider(
-    OPEN_ROUTER_API_KEYS,
-    model_name="nex-agi/nex-n2.5-mini:free"
-)
+    except (LlmError, ExtractError) as e:
+        print(e)
+    except (KeyError):
+        print("The provided URL does not allow access to a known model.")
 
-model = OpenRouterProvider(
-    OPEN_ROUTER_API_KEYS,
-    model_name="nex-agi/nex-n2.5-mini:free"
-)
-try:
-    datas: LLmOutput = model.generate(
-        "Donne moi une fonction python qui permet d additionner deux nombres")
-    if datas is not None:
-        print(datas.content)
-except LlmError as e:
-    print(e)
+
+if __name__ == "__main__":
+    fire.Fire(
+        {
+            "agent_example": agent_example
+        },
+        name="Agent Smith"
+    )

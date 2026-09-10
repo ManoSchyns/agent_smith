@@ -1,4 +1,6 @@
 PYTHON = uv run python
+EXAMPLE = agent_example "Creer moi une  qui dit hello world" "gemini-3.1-flash-lite" "https://generativelanguage.googleapis.com"
+
 
 all: install
 
@@ -6,7 +8,7 @@ install:
 	uv sync
 
 run:
-	$(PYTHON)
+	$(PYTHON) src $(EXAMPLE)
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
