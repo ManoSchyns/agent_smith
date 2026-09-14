@@ -1,8 +1,13 @@
 from mcp.server.mcpserver import MCPServer
+from dotenv import load_dotenv
 import sys
+import os
 
 
-mcp = MCPServer("A")
+load_dotenv()
+DIRECTORY = os.environ["TESTBED_PATH"]
+
+mcp = MCPServer("Agent Smith")
 
 # @mcp.tool()
 

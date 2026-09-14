@@ -8,10 +8,21 @@ from mcp.client.streamable_http import streamable_http_client
 
 
 class MCPClientError(Exception):
+    """
+    Error class MCPCLIENT
+    """
     pass
 
 
 class MCPClient:
+    """
+    The MCP client. For connections to servers via STDIO or HTTP
+
+    Arguments:
+        transport(str): STDIO or HTTP. How to connect to the server
+        file_path(str) | None: The path to the file for STDIO
+        server_url(str): The URL of the HTTP server
+    """
 
     def __init__(
         self,
@@ -35,6 +46,9 @@ class MCPClient:
         self._exit_stack = AsyncExitStack()
 
     async def connect(self) -> None:
+        """
+        Initialize the server connection
+        """
 
         if self.session is not None:
             return
@@ -53,6 +67,9 @@ class MCPClient:
             await self.session.initialize()
 
     async def stdio_connect(self) -> None:
+        """
+        Initialize the server connection in STDIO
+        """
 
         server_params = StdioServerParameters(
             command=self.server_command,
@@ -68,6 +85,9 @@ class MCPClient:
         )
 
     async def http_connect(self) -> None:
+        """
+        Initialize the server connection in HTTP
+        """
 
         if self.server_url is None:
             raise MCPClientError(
@@ -83,6 +103,11 @@ class MCPClient:
         )
 
     async def list_tools(self) -> Any:
+        """
+        List the tools provided by the server
+
+        Return (Any): Tools
+        """
 
         if self.session is None:
             raise MCPClientError("Client non connecté")
@@ -92,8 +117,25 @@ class MCPClient:
         return result.tools
 
     def make_callable(self, name: str) -> Callable:
+        """
+        Returns a function corresponding to the tool's name
+
+        Arg:
+            name (str): The function name
+
+        Return:
+            (Callable): The function to call the server for this name
+        """
 
         async def tool_callable(**args: dict) -> Any:
+            """
+            Call the server to call the `name` function for `args`.
+
+            Args:
+                args(dict): The arguments
+            Return:
+                The server's response
+            """
 
             if self.session is None:
                 raise MCPClientError(
@@ -111,6 +153,15 @@ class MCPClient:
         self,
         tools: list[Any],
     ) -> dict[str, Callable]:
+        """
+        For a list of tools, return the callables to launch these tools.
+
+        Arg:
+            tools: The list of tools
+
+        Return:
+            Dict[str, Callable]: For each tool, its corresponding function
+        """
 
         return {
             tool.name: self.make_callable(tool.name)
@@ -118,6 +169,9 @@ class MCPClient:
         }
 
     async def close(self) -> None:
+        """
+        Close the current connection by removing it from the stack
+        """
 
         await self._exit_stack.aclose()
 
@@ -145,7 +199,20 @@ if __name__ == "__main__":
             # Transforme en callable
             tools = client.get_tools_callable(data)
             # On appelle ceux correspondant
-            result = await tools["hello_world"]()
+
+            code = """
+def tuple_to_int(nums):
+    to_return = ""
+    for num in nums:
+        to_return += str(num)
+    return to_return
+"""
+            test_list = [
+                "assert tuple_to_int((4,5,6))==456",
+                "assert tuple_to_int((5,6,7))==567"]
+
+            print(tools)
+            result = await tools["run_tests"](code=code, test_list=test_list)
             print(result)
 
         except (MCPClientError, MCPError, httpx.ConnectError) as e:
