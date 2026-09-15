@@ -49,7 +49,7 @@ def read_file_tool(filepath: str, start_line: int, end_line: int) -> str:
     ret_val: str = ""
 
     for i, line in enumerate(lines):
-        ret_val += f"{start_line + i} {line}"
+        ret_val += f"{start_line + i + 1} {line}"
 
     return json.dumps({
         "success": True,
@@ -133,7 +133,7 @@ def list_files_tool(directory: str, pattern: str) -> str:
 
         if not fnmatch.fnmatch(file.name, pattern):
             continue
-        all_file.append(file.name)
+        all_file.append(f"{file.resolve()}")
     return json.dumps({
         "success": True,
         "output": all_file

@@ -2,7 +2,8 @@ from mcp.server.mcpserver import MCPServer
 import sys
 from src.mcp.swebench_tools import (read_file_tool,
                                     edit_file_tool,
-                                    list_files_tool)
+                                    list_files_tool,
+                                    search_code_tool)
 
 
 mcp = MCPServer("Agent Smith")
@@ -59,6 +60,23 @@ def list_files(directory: str, pattern: str) -> str:
             it was successful or not.
     """
     return list_files_tool(directory=directory, pattern=pattern)
+
+
+@mcp.tool()
+def search_code(pattern: str, file_pattern: str) -> str:
+    """
+    Searches for a pattern in all files that matches the file_pattern
+
+    Args:
+        pattern (str): the pattern to search for
+        file_pattern (str): the pattern in the files
+
+    Return:
+        A JSON object with the result indicating whether
+        it was successful or not.
+    """
+    return search_code_tool(pattern=pattern,
+                            file_pattern=file_pattern)
 
 
 if __name__ == "__main__":

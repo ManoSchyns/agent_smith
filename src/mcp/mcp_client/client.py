@@ -180,6 +180,8 @@ class MCPClient:
 
 if __name__ == "__main__":
 
+    import json
+
     async def test_agent() -> None:
 
         """client = MCPClient(
@@ -201,12 +203,13 @@ if __name__ == "__main__":
             # On appelle ceux correspondant
 
             await client.connect()
-            print(tools)
 
-            result = await tools["list_files"](directory="src",
-                                               pattern="*.txt")
+            result = await tools["search_code"](pattern="DIRECTORY",
+                                                file_pattern="*.py")
 
-            print(result.content[0].text)
+            datas = json.loads(result.content[0].text)
+            for line in datas["output"]:
+                print(line)
 
         except (MCPClientError, MCPError, httpx.ConnectError) as e:
             print("Erreur lors de la connection :", e)
