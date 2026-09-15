@@ -39,7 +39,7 @@ def read_file_tool(filepath: str, start_line: int, end_line: int) -> str:
         with open(full_path, "r") as file:
             lines = file.readlines()
 
-    except (FileNotFoundError, PermissionError) as e:
+    except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
         return json.dumps({
             "success": False,
             "output": str(e)
@@ -98,7 +98,7 @@ def edit_file_tool(filepath: str, old_str: str, new_str: str) -> str:
                 "been successfully completed."
             })
 
-    except (FileNotFoundError, PermissionError) as e:
+    except (FileNotFoundError, PermissionError, UnicodeDecodeError) as e:
         return json.dumps({
             "success": False,
             "output": str(e)

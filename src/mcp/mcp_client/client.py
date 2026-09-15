@@ -197,6 +197,10 @@ if __name__ == "__main__":
             await client.connect()
             # Recuperation des outils
             data = await client.list_tools()
+            print("============TOOOOLLLLLLSSSSS ==========")
+            for line in data:
+                print(line.name)
+            print("==========================\n")
 
             # Transforme en callable
             tools = client.get_tools_callable(data)
