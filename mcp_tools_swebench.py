@@ -1,15 +1,64 @@
 from mcp.server.mcpserver import MCPServer
-from dotenv import load_dotenv
 import sys
-import os
+from src.mcp.swebench_tools import (read_file_tool,
+                                    edit_file_tool,
+                                    list_files_tool)
 
-
-load_dotenv()
-DIRECTORY = os.environ["TESTBED_PATH"]
 
 mcp = MCPServer("Agent Smith")
 
-# @mcp.tool()
+
+@mcp.tool()
+def read_file(filepath: str, start_line: int, end_line: int) -> str:
+    """
+    Reads the file and returns the lines from start line to end line
+
+    Ars:
+        filepath (str): The path to the file
+        start_line (int): The index of the starting line to read
+        end_line (int): The index of the ending line
+
+    Return:
+        (str): A JSON object with the result if successed or not
+    """
+
+    return read_file_tool(filepath=filepath,
+                          start_line=start_line,
+                          end_line=end_line)
+
+
+@mcp.tool()
+def edit_file(filepath: str, old_str: str, new_str: str) -> str:
+    """
+    Edit a file by replacing the old string with the new one.
+
+    Args:
+        filepath(str): The file path
+        old_str(str): The part to change
+        new_str(str): The part to add
+
+    Return:
+        A JSON object with the result if successed or not
+    """
+    return edit_file_tool(filepath=filepath,
+                          old_str=old_str,
+                          new_str=new_str)
+
+
+@mcp.tool()
+def list_files(directory: str, pattern: str) -> str:
+    """
+    Lists the files that match the pattern in the folder.
+
+    Argument:
+        Directory (str): the folder to search in
+        Pattern (str): the pattern to follow
+
+    Return:
+        A JSON object with the result indicating whether
+            it was successful or not.
+    """
+    return list_files_tool(directory=directory, pattern=pattern)
 
 
 if __name__ == "__main__":

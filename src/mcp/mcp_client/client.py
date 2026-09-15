@@ -188,7 +188,7 @@ if __name__ == "__main__":
         )"""
         client = MCPClient(
             "http",
-            server_url="http://127.0.0.2:8000/mcp"
+            server_url="http://127.0.0.3:8000/mcp"
         )
         try:
             # Connection
@@ -200,20 +200,13 @@ if __name__ == "__main__":
             tools = client.get_tools_callable(data)
             # On appelle ceux correspondant
 
-            code = """
-def tuple_to_int(nums):
-    to_return = ""
-    for num in nums:
-        to_return += str(num)
-    return to_return
-"""
-            test_list = [
-                "assert tuple_to_int((4,5,6))==456",
-                "assert tuple_to_int((5,6,7))==567"]
-
+            await client.connect()
             print(tools)
-            result = await tools["run_tests"](code=code, test_list=test_list)
-            print(result)
+
+            result = await tools["list_files"](directory="src",
+                                               pattern="*.txt")
+
+            print(result.content[0].text)
 
         except (MCPClientError, MCPError, httpx.ConnectError) as e:
             print("Erreur lors de la connection :", e)

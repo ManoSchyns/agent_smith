@@ -16,7 +16,7 @@ def run_tests(code: str, test_list: list[str]) -> str:
         test_list(list[str]): the tests to run
 
     Return:
-        A JSON object with the result
+        A JSON object with the result if successed or not
     """
     try:
         namespace: dict = {}
