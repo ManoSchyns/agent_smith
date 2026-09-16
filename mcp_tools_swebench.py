@@ -142,6 +142,7 @@ def get_patch() -> str:
     """
     return get_patch_tool()
 
+
 if __name__ == "__main__":
     """
     Si on le lance sans args -> stdio

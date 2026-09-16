@@ -180,8 +180,6 @@ class MCPClient:
 
 if __name__ == "__main__":
 
-    import json
-
     async def test_agent() -> None:
 
         """client = MCPClient(
