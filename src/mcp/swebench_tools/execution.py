@@ -53,5 +53,30 @@ def get_patch_tool() -> str:
     })
 
 
+def run_command_tool(command: str, workdir: str) -> str:
+    """
+    Execute a shell command in the specified working directory
+
+    Args:
+        command (str): the command to execute
+        workdir (str): the folder in which to execute the command
+
+    Return:
+        Returns the command’s stdout, stderr, and exit code
+    """
+    result = subprocess.run(
+        command,
+        cwd=workdir,
+        shell=True,
+        capture_output=True,
+        text=True
+    )
+    return json.dumps({
+            "exit_code": result.returncode,
+            "stdout": result.stdout,
+            "stderr": result.stderr
+        })
+
+
 if __name__ == "__main__":
-    print(run_tests_tool())
+    print(run_command_tool('ls -l', "src/mcp/mcp_client"))

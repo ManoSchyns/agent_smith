@@ -8,7 +8,8 @@ from src.mcp.swebench_tools import (
     search_function_or_class_definition_in_code_tool,
     find_references_tool,
     run_tests_tool,
-    get_patch_tool
+    get_patch_tool,
+    run_command_tool
 )
 
 
@@ -141,6 +142,21 @@ def get_patch() -> str:
         A JSON object with the result if successed or not and the git diffs
     """
     return get_patch_tool()
+
+
+@mcp.tool()
+def run_command(command: str, workdir: str) -> str:
+    """
+    Execute a shell command in the specified working directory
+
+    Args:
+        command (str): the command to execute
+        workdir (str): the folder in which to execute the command
+
+    Return:
+        Returns the command’s stdout, stderr, and exit code
+    """
+    return run_command_tool(command=command, workdir=workdir)
 
 
 if __name__ == "__main__":

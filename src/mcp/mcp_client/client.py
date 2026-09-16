@@ -206,7 +206,8 @@ if __name__ == "__main__":
 
             await client.connect()
 
-            result = await tools["get_patch"]()
+            result = await tools["run_command"](command="cat LICENSE",
+                                                workdir=".")
 
             print(result)
 
