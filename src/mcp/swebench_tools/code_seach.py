@@ -1,4 +1,5 @@
 from file_system import list_files_tool
+from pathlib import Path
 import json
 import ast
 
@@ -45,7 +46,7 @@ def search_code_tool(pattern: str, file_pattern: str) -> str:
     })
 
 
-def search_function_or_class_definition_in_code_tool(name) -> str:
+def search_function_or_class_definition_in_code_tool(name: str) -> str:
     """
     Find the definition of a function or a class
 
@@ -57,7 +58,7 @@ def search_function_or_class_definition_in_code_tool(name) -> str:
             it was successful or not.
     """
     datas = json.loads(list_files_tool("", "*.py"))
-    
+
     if not datas["success"]:
         return json.dumps({
             "success": False,
@@ -78,7 +79,10 @@ def search_function_or_class_definition_in_code_tool(name) -> str:
                               (ast.FunctionDef, ast.ClassDef,
                                ast.AsyncFunctionDef)):
                     if node.name == name:
-                        ret_val.append(f"{file_name}:{node.lineno} {lines[node.lineno - 1]}")
+                        ret_val.append(
+                            f"{file_name}:{node.lineno} "
+                            f"{lines[node.lineno - 1]}"
+                        )
 
         except (FileNotFoundError, PermissionError, UnicodeDecodeError,
                 SyntaxError):
@@ -90,9 +94,9 @@ def search_function_or_class_definition_in_code_tool(name) -> str:
         })
 
 
-def find_references(name: str, filepath: str, line: int) -> str:
+def find_references_tool(name: str, filepath: str, line: int) -> str:
     """
-    Finds all uses of a class or function defined by the name `name`
+    Finds all uses of a class or function defined by the name name
 
     Arguments:
         name (str): the name of the function/class
@@ -103,66 +107,141 @@ def find_references(name: str, filepath: str, line: int) -> str:
         A JSON object with the result indicating whether
             it was successful or not.
     """
-    origin: ast.AST = get_orginal_ast_obj(name, filepath, line)
+    origin: (
+        ast.ClassDef | ast.AsyncFunctionDef
+        | ast.FunctionDef | None
+        ) = get_orginal_ast_obj(name, filepath, line)
 
-    if isinstance(origin, (ast.AsyncFunctionDef, ast.FunctionDef)):
-        # start function
-        pass
+    if origin is None:
+        return json.dumps({
+                "success": False,
+                "output": f"The function or class {name} does not exist "
+                f"in the file {filepath} "
+                f"and on line {line}"
+            })
 
-    elif isinstance(origin, ast.ClassDef):
-        # start class
-        pass
-
-    return json.dumps({
-        "success": False,
-        "output": f"The class or function bearing the name: {name}"
-                  f"could not be found in the file: {filepath}"
-                  f"at the line: {line}"
-        })
-
-
-def find_ref_funct(ref: ast.FunctionDef) -> str:
-    """
-    Recherche toutes les references a une fonction dans les fichiers
-
-    Arg:
-        ref (ast.FunctionDef): la definition de la fonction
-
-    Return:
-        A JSON object with the result indicating whether
-            it was successful or not.
-    """
     datas = json.loads(list_files_tool("", "*.py"))
-
     if not datas["success"]:
         return json.dumps({
             "success": False,
             "output": datas["output"]
         })
-    
+
+    origin_filename = str(Path(filepath).resolve())
     files = datas["output"]
-    
     ret_val: list[str] = []
+
     for file_name in files:
-    
         try:
             with open(file_name, "r") as file:
-                # analyser les imports
-                # Regarder les appels si ce sont des Call ou Ref
-                # verifier aussi le ctx + nom
-                # Si tout bon -> C est ma fonction
-                pass
-        except (FileNotFoundError, PermissionError, UnicodeDecodeError):
+                content = file.read()
+                tree = ast.parse(content)
+        except (FileNotFoundError, PermissionError,
+                UnicodeDecodeError, SyntaxError):
             continue
-    
+
+        splited_content = content.splitlines()
+
+        tmp_found: list[str] = []
+        imported: bool = False
+        if file_name == origin_filename:
+            imported = True
+
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.Import, ast.ImportFrom)) and not imported:
+                for alias in node.names:
+                    if alias.name == origin.name:
+                        imported = True
+
+            if (
+                isinstance(origin, (ast.AsyncFunctionDef, ast.FunctionDef))
+                and is_ref_funct(origin, node)
+            ):
+                if isinstance(node, (ast.Call, ast.Name)):
+                    tmp_found.append(
+                        f"{file_name}:{node.lineno} "
+                        f"{splited_content[node.lineno - 1]}"
+                    )
+
+            elif (
+                isinstance(origin, ast.ClassDef)
+                and is_ref_class(origin, node)
+            ):
+                if isinstance(node, (ast.Call, ast.Name, ast.ClassDef)):
+                    tmp_found.append(
+                        f"{file_name}:{node.lineno} "
+                        f"{splited_content[node.lineno - 1]}"
+                    )
+
+        if imported:
+            ret_val.extend(tmp_found)
+
     return json.dumps({
         "success": True,
         "output": ret_val
     })
 
 
+def is_ref_funct(ref: ast.FunctionDef | ast.AsyncFunctionDef,
+                 node: ast.AST) -> bool:
+    """
+    Indicates whether the node is a reference to the ref function.
 
-def get_orginal_ast_obj(name: str, filepath: str, line: int) -> ast.AST | None:
+    Argument:
+        ref(ast.ClassDef):: the base reference
+        node(ast.AST):: the node to check
+
+    Return:
+        True if it is indeed a reference
+        False otherwise
+    """
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Attribute) and node.func.attr == ref.name:
+            return True
+    elif (
+        isinstance(node, ast.Name)
+        and node.id == ref.name
+        and isinstance(node.ctx, ast.Load)
+    ):
+        return True
+    return False
+
+
+def is_ref_class(ref: ast.ClassDef, node: ast.AST) -> bool:
+    """
+    Indicates whether the node is a reference to the ref class.
+
+    Argument:
+        ref(ast.ClassDef):: the base reference
+        node(ast.AST):: the node to check
+
+    Return:
+        True if it is indeed a reference
+        False otherwise
+    """
+    if isinstance(node, ast.Call):
+        if isinstance(node.func, ast.Name) and node.func.id == ref.name:
+            return True
+    elif isinstance(node, ast.ClassDef):
+        for base in node.bases:
+            if isinstance(base, ast.Name) and base.id == ref.name:
+                return True
+
+    elif (
+        isinstance(node, ast.Name)
+        and node.id == ref.name
+        and isinstance(node.ctx, ast.Load)
+    ):
+        return True
+    return False
+
+
+def get_orginal_ast_obj(name: str, filepath: str, line: int) -> (
+        ast.AsyncFunctionDef
+        | ast.FunctionDef
+        | ast.ClassDef
+        | None
+        ):
     """
     Retrieve the AST object corresponding to the searched object
 
@@ -181,14 +260,25 @@ def get_orginal_ast_obj(name: str, filepath: str, line: int) -> ast.AST | None:
 
         tree = ast.parse(content)
         for node in ast.walk(tree):
-            if isinstance(node,(ast.FunctionDef, ast.ClassDef,
-                                ast.AsyncFunctionDef)):
+            if isinstance(
+                node, (ast.FunctionDef, ast.ClassDef,
+                       ast.AsyncFunctionDef)
+            ):
                 if node.lineno == line and node.name == name:
                     return node
         return None
-    except (FileNotFoundError, PermissionError, UnicodeDecodeError,
-                    SyntaxError) as e:
+    except (FileNotFoundError, PermissionError,
+            UnicodeDecodeError, SyntaxError):
         return None
 
+
 if __name__ == "__main__":
-    find_references("connect", "src/mcp/mcp_client/client.py", 48)
+    datas = json.loads(find_references_tool(
+        "find_references_tool",
+        "src/mcp/swebench_tools/code_seach.py", 97))
+
+    if datas["success"]:
+        for lin in datas["output"]:
+            print(lin)
+    else:
+        print(datas["output"])

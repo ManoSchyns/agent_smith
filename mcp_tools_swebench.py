@@ -1,10 +1,13 @@
 from mcp.server.mcpserver import MCPServer
 import sys
-from src.mcp.swebench_tools import (read_file_tool,
-                                    edit_file_tool,
-                                    list_files_tool,
-                                    search_code_tool,
-                                    search_function_or_class_definition_in_code_tool)
+from src.mcp.swebench_tools import (
+    read_file_tool,
+    edit_file_tool,
+    list_files_tool,
+    search_code_tool,
+    search_function_or_class_definition_in_code_tool,
+    find_references_tool
+)
 
 
 mcp = MCPServer("Agent Smith")
@@ -84,10 +87,10 @@ def search_code(pattern: str, file_pattern: str) -> str:
 def search_function_or_class_definition_in_code(name: str) -> str:
     """
     Find the definition of a function or a class
-    
+
     Arg:
         name (str): the name of the class or function to search for
-    
+
     Return:
         A JSON object with the result indicating whether
             it was successful or not.
@@ -95,6 +98,25 @@ def search_function_or_class_definition_in_code(name: str) -> str:
     return search_function_or_class_definition_in_code_tool(
         name=name
     )
+
+
+@mcp.tool()
+def find_references(name: str, filepath: str, line: int) -> str:
+    """
+    Finds all uses of a class or function defined by the name name
+
+    Arguments:
+        name (str): the name of the function/class
+        filepath (str): the path to where the class is located
+        line (int): the line number where it is located
+
+    Return:
+        A JSON object with the result indicating whether
+            it was successful or not.
+    """
+    return find_references_tool(name=name,
+                                filepath=filepath,
+                                line=line)
 
 
 if __name__ == "__main__":
