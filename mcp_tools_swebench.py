@@ -6,7 +6,9 @@ from src.mcp.swebench_tools import (
     list_files_tool,
     search_code_tool,
     search_function_or_class_definition_in_code_tool,
-    find_references_tool
+    find_references_tool,
+    run_tests_tool,
+    get_patch_tool
 )
 
 
@@ -118,6 +120,27 @@ def find_references(name: str, filepath: str, line: int) -> str:
                                 filepath=filepath,
                                 line=line)
 
+
+@mcp.tool()
+def run_tests() -> str:
+    """
+    Execute the evaulation script
+
+    Return:
+        A JSON object with the result if successed or not
+    """
+    return run_tests_tool()
+
+
+@mcp.tool()
+def get_patch() -> str:
+    """
+    Retrieve the unified git diff of all changes made to the repository
+
+    Return:
+        A JSON object with the result if successed or not and the git diffs
+    """
+    return get_patch_tool()
 
 if __name__ == "__main__":
     """

@@ -208,12 +208,9 @@ if __name__ == "__main__":
 
             await client.connect()
 
-            result = await tools["search_code"](pattern="DIRECTORY",
-                                                file_pattern="*.py")
+            result = await tools["get_patch"]()
 
-            datas = json.loads(result.content[0].text)
-            for line in datas["output"]:
-                print(line)
+            print(result)
 
         except (MCPClientError, MCPError, httpx.ConnectError) as e:
             print("Erreur lors de la connection :", e)
