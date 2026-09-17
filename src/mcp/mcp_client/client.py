@@ -1,7 +1,8 @@
 from typing import Any, Callable
-from contextlib import AsyncExitStack
-import httpx
 import asyncio
+import threading
+
+import httpx
 from mcp import ClientSession, StdioServerParameters, MCPError
 from mcp.client.stdio import stdio_client
 from mcp.client.streamable_http import streamable_http_client
@@ -16,12 +17,13 @@ class MCPClientError(Exception):
 
 class MCPClient:
     """
-    The MCP client. For connections to servers via STDIO or HTTP
+    The MCP client.
+    For connections to servers via STDIO or HTTP.
 
-    Arguments:
-        transport(str): STDIO or HTTP. How to connect to the server
-        file_path(str) | None: The path to the file for STDIO
-        server_url(str): The URL of the HTTP server
+    Args:
+        transport (str): STDIO or HTTP
+        file_path (str | None): le chemin vers le fichier pour stdio
+        server_url (str | None): l'url vers le server mcp
     """
 
     def __init__(
@@ -41,111 +43,241 @@ class MCPClient:
 
         self.server_url = server_url
 
+        # MCP objects
         self.session: ClientSession | None = None
+        self._exit_stack = None
 
-        self._exit_stack = AsyncExitStack()
+        # Thread / Event Loop
+        self.loop: asyncio.AbstractEventLoop | None = None
+        self.thread: threading.Thread | None = None
 
-    async def connect(self) -> None:
+        # Synchronisation
+        self.loop_ready = threading.Event()
+        self.connected = threading.Event()
+
+        # Error from the MCP thread
+        self._error: Exception | None = None
+
+        self._shutdown_event: asyncio.Event | None = None
+
+    def _run_loop(self) -> None:
         """
-        Initialize the server connection
+        Entry point of the MCP thread. And set the event loop
         """
 
-        if self.session is not None:
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+        self.loop_ready.set()
+
+        try:
+            self.loop.run_until_complete(
+                self._connection_loop()
+            )
+
+        except Exception as e:
+            self._error = e
+
+        finally:
+            self.loop.close()
+
+    def start_loop(self) -> None:
+        """
+        Start the MCP thread and its event loop.
+        """
+
+        if self.thread is not None:
             return
 
-        if self.transport == "stdio":
-            await self.stdio_connect()
+        self.thread = threading.Thread(
+            target=self._run_loop,
+            daemon=True,
+        )
 
-        elif self.transport == "http":
-            await self.http_connect()
+        self.thread.start()
+
+        self.loop_ready.wait()
+
+    async def _connection_loop(self) -> None:
+        """
+        Owns the MCP connection for its entire lifetime.
+
+        The connection is created, used and closed
+        inside the same async context.
+        """
+
+        self._shutdown_event = asyncio.Event()
+
+        if self.transport == "http":
+
+            if self.server_url is None:
+                raise MCPClientError(
+                    "server_url is required for HTTP"
+                )
+
+            async with streamable_http_client(
+                self.server_url
+            ) as streams:
+
+                read, write, *_ = streams
+
+                async with ClientSession(
+                    read,
+                    write
+                ) as session:
+
+                    self.session = session
+
+                    await self.session.initialize()
+
+                    self.connected.set()
+
+                    # Keep the connection alive
+                    await self._shutdown_event.wait()
+
+        elif self.transport == "stdio":
+
+            server_params = StdioServerParameters(
+                command=self.server_command,
+                args=self.file_path,
+            )
+
+            async with stdio_client(
+                server_params
+            ) as streams:
+
+                read, write = streams
+
+                async with ClientSession(
+                    read,
+                    write
+                ) as session:
+
+                    self.session = session
+
+                    await self.session.initialize()
+
+                    self.connected.set()
+
+                    # Keep the connection alive
+                    await self._shutdown_event.wait()
 
         else:
             raise MCPClientError(
                 f"Transport inconnu : {self.transport}"
             )
-        if self.session:
-            await self.session.initialize()
 
-    async def stdio_connect(self) -> None:
+        self.session = None
+
+    def _run_async(self, coro: Any) -> Any:
         """
-        Initialize the server connection in STDIO
-        """
+        Execute an async coroutine inside the MCP event loop
+        and wait synchronously for its result.
 
-        server_params = StdioServerParameters(
-            command=self.server_command,
-            args=self.file_path,
-        )
+        Arg:
+            coro: The cocoutine
 
-        read, write = await self._exit_stack.enter_async_context(
-            stdio_client(server_params)
-        )
-
-        self.session = await self._exit_stack.enter_async_context(
-            ClientSession(read, write)
-        )
-
-    async def http_connect(self) -> None:
-        """
-        Initialize the server connection in HTTP
+        Return:
+            Any -> the output of the coroutine
         """
 
-        if self.server_url is None:
+        if self.loop is None:
             raise MCPClientError(
-                "server_url est requis pour HTTP"
+                "Event loop not started"
             )
 
-        read, write, *_ = await self._exit_stack.enter_async_context(
-            streamable_http_client(self.server_url)
+        future = asyncio.run_coroutine_threadsafe(
+            coro,
+            self.loop,
         )
 
-        self.session = await self._exit_stack.enter_async_context(
-            ClientSession(read, write)
-        )
+        return future.result()
 
-    async def list_tools(self) -> Any:
+    def connect(self) -> None:
         """
-        List the tools provided by the server
+        Start the MCP thread and wait until the connection
+        is ready.
+        """
 
-        Return (Any): Tools
+        if self.connected.is_set():
+            return
+
+        self.start_loop()
+
+        self.connected.wait()
+
+        if self._error is not None:
+            raise MCPClientError(
+                f"Erreur MCP : {self._error}"
+            )
+
+    async def _list_tools(self) -> Any:
+        """
+        Async implementation of list_tools.
         """
 
         if self.session is None:
-            raise MCPClientError("Client non connecté")
+            raise MCPClientError(
+                "Client not logged in"
+            )
 
-        result: Any = await self.session.list_tools()
+        result = await self.session.list_tools()
 
         return result.tools
 
-    def make_callable(self, name: str) -> Callable:
+    def list_tools(self) -> Any:
         """
-        Returns a function corresponding to the tool's name
+        Synchronous interface for list_tools.
+        """
+
+        return self._run_async(
+            self._list_tools()
+        )
+
+    def make_callable(
+        self,
+        name: str,
+    ) -> Callable:
+        """
+        Return a synchronous function corresponding
+        to an MCP tool.
 
         Arg:
-            name (str): The function name
+            name (str): the name of the functin
 
         Return:
-            (Callable): The function to call the server for this name
+            Callable: The function
         """
 
-        async def tool_callable(**args: dict) -> Any:
+        def tool_callable(**args: dict) -> Any:
             """
-            Call the server to call the `name` function for `args`.
+            Synchronous wrapper around an async MCP tool.
 
-            Args:
-                args(dict): The arguments
+            Arg:
+                **args: The args of the fonction
+
             Return:
-                The server's response
+                Any: The output of the fonction
             """
 
             if self.session is None:
                 raise MCPClientError(
-                    "Client non connecté"
+                    "Client not logged in"
+                )
+            if self.loop is None:
+                raise MCPClientError(
+                    "Uninitialized event loop"
                 )
 
-            return await self.session.call_tool(
-                name,
-                args or {},
+            future = asyncio.run_coroutine_threadsafe(
+                self.session.call_tool(
+                    name,
+                    args or {},
+                ),
+                self.loop,
             )
+
+            return future.result()
 
         return tool_callable
 
@@ -154,13 +286,15 @@ class MCPClient:
         tools: list[Any],
     ) -> dict[str, Callable]:
         """
-        For a list of tools, return the callables to launch these tools.
+        Return a dictionary containing one callable
+        for each MCP tool.
 
         Arg:
-            tools: The list of tools
+            tools (list): The mcp tools
 
-        Return:
-            Dict[str, Callable]: For each tool, its corresponding function
+        Return (dict[str, Callable]): a dict with
+            str, the name of the function
+            callable: the MCP tool
         """
 
         return {
@@ -168,54 +302,82 @@ class MCPClient:
             for tool in tools
         }
 
-    async def close(self) -> None:
+    def close(self) -> None:
         """
-        Close the current connection by removing it from the stack
+        Close the MCP connection.
         """
 
-        await self._exit_stack.aclose()
+        if self.loop is None:
+            return
 
+        if self._shutdown_event is not None:
+
+            self.loop.call_soon_threadsafe(
+                self._shutdown_event.set
+            )
+
+        if self.thread is not None:
+            self.thread.join()
+
+        self.thread = None
+        self.loop = None
         self.session = None
+        self.connected.clear()
+        self.loop_ready.clear()
+        self._shutdown_event = None
+
+
+def test_agent() -> None:
+
+    client = MCPClient(
+        "stdio",
+        file_path="mcp_tools_swebench.py"
+    )
+
+    try:
+        # Connexion
+        client.connect()
+
+        # Récupération des outils
+        data = client.list_tools()
+
+        print("============ TOOLS ============")
+
+        for tool in data:
+            print(tool.name)
+
+        print("===============================\n")
+
+        # Création des wrappers
+        tools = client.get_tools_callable(data)
+
+        # Code généré par le LLM
+        code = """
+result = get_patch()
+
+print(result)
+"""
+
+        print("============ LLM CODE ==========")
+        print(code)
+        print("===============================\n")
+
+        # Exécution du code LLM
+        exec(code, tools)
+
+    except (
+        MCPClientError,
+        MCPError,
+        httpx.ConnectError,
+    ) as e:
+        print("Erreur :", e)
+
+    finally:
+        client.close()
 
 
 if __name__ == "__main__":
-
-    async def test_agent() -> None:
-
-        """client = MCPClient(
-            "stdio",
-            file_path="mcp_tools_mbpp.py"
-        )"""
-        client = MCPClient(
-            "http",
-            server_url="http://127.0.0.3:8000/mcp"
-        )
-        try:
-            # Connection
-            await client.connect()
-            # Recuperation des outils
-            data = await client.list_tools()
-            print("============TOOOOLLLLLLSSSSS ==========")
-            for line in data:
-                print(line.name)
-            print("==========================\n")
-
-            # Transforme en callable
-            tools = client.get_tools_callable(data)
-            # On appelle ceux correspondant
-
-            await client.connect()
-
-            result = await tools["run_command"](command="cat LICENSE",
-                                                workdir=".")
-
-            print(result)
-
-        except (MCPClientError, MCPError, httpx.ConnectError) as e:
-            print("Erreur lors de la connection :", e)
-        finally:
-            await client.close()
     try:
-        asyncio.run(test_agent())
+        test_agent()
     except Exception as e:
-        print(e)
+        print("Erreur :", e)
