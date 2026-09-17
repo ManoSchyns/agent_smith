@@ -239,19 +239,21 @@ class MCPClient:
     def make_callable(
         self,
         name: str,
+        required_args: list[str]
     ) -> Callable:
         """
         Return a synchronous function corresponding
         to an MCP tool.
 
         Arg:
-            name (str): the name of the functin
+            name (str): the name of the function
+            required_args (list[str]): Les arguments necessaire a la fonction
 
         Return:
             Callable: The function
         """
 
-        def tool_callable(**args: dict) -> Any:
+        def tool_callable(*args: tuple, **kwargs: dict) -> Any:
             """
             Synchronous wrapper around an async MCP tool.
 
@@ -271,10 +273,12 @@ class MCPClient:
                     "Uninitialized event loop"
                 )
 
+            processed_args = self._process_args(args, kwargs, required_args)
+
             future = asyncio.run_coroutine_threadsafe(
                 self.session.call_tool(
                     name,
-                    args or {},
+                    processed_args,
                 ),
                 self.loop,
             )
@@ -282,6 +286,34 @@ class MCPClient:
             return future.result()
 
         return tool_callable
+
+    def _process_args(self, args: tuple,
+                      kwargs: dict, required_args: list[str]) -> dict:
+        """
+        Processes the received arguments and transforms\
+        them into usable arguments.
+
+        Args:
+            args(list): Arguments as a list
+            kwargs(list): Arguments as a dictionary
+            required_args(list[str]): Required arguments
+
+        Return:
+            dict -> Arguments as a dictionary
+        """
+        processed_args: dict = {}
+        indice: int = 0
+
+        if not args:
+            return kwargs or {}
+
+        while (indice < len(args) and indice < len(required_args)):
+            processed_args[required_args[indice]] = args[indice]
+            indice += 1
+
+        if kwargs:
+            processed_args.update(kwargs)
+        return processed_args
 
     def get_tools_callable(
         self,
@@ -298,11 +330,14 @@ class MCPClient:
             str, the name of the function
             callable: the MCP tool
         """
+        ret_val: dict[str, Callable] = {}
 
-        return {
-            tool.name: self.make_callable(tool.name)
-            for tool in tools
-        }
+        for tool in tools:
+            required = []
+            if tool.input_schema["properties"]:
+                required = tool.input_schema["required"]
+            ret_val[tool.name] = self.make_callable(tool.name, required)
+        return ret_val
 
     def close(self) -> None:
         """
