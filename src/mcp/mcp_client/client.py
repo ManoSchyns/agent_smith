@@ -37,10 +37,11 @@ class MCPClient:
 
         self.server_command = "uv"
 
-        if file_path:
-            self.file_path = ["run", "python", file_path]
+        self.file_path = file_path
+        if file_path and file_path.endswith(".py"):
+            self.command = ["run", "python", file_path]
         else:
-            self.file_path = []
+            self.command = []
 
         self.server_url = server_url
 
@@ -119,7 +120,6 @@ class MCPClient:
             async with streamable_http_client(
                 self.server_url
             ) as streams:
-
                 read, write, *_ = streams
 
                 async with ClientSession(
@@ -136,11 +136,11 @@ class MCPClient:
                     # Keep the connection alive
                     await self._shutdown_event.wait()
 
-        elif self.transport == "stdio":
+        elif self.transport == "stdio" and self.command:
 
             server_params = StdioServerParameters(
                 command=self.server_command,
-                args=self.file_path,
+                args=self.command,
                 env=os.environ.copy()
             )
 
@@ -206,11 +206,11 @@ class MCPClient:
 
         self.start_loop()
 
-        self.connected.wait()
+        self.connected.wait(timeout=5)
 
         if self._error is not None:
             raise MCPClientError(
-                f"Erreur MCP : {self._error}"
+                "Erreur MCP : The connection could not be established."
             )
 
     async def _list_tools(self) -> Any:
@@ -332,7 +332,8 @@ class MCPClient:
 def test_agent() -> None:
 
     client = MCPClient(
-        "stdio",
+        "http",
+        server_url="http://127.0.0.3:8000/mcp",
         file_path="mcp_tools_swebench.py"
     )
 
