@@ -1,6 +1,7 @@
 from typing import Any, Callable
 import asyncio
 import threading
+import os
 
 import httpx
 from mcp import ClientSession, StdioServerParameters, MCPError
@@ -34,10 +35,10 @@ class MCPClient:
     ):
         self.transport = transport
 
-        self.server_command = "python"
+        self.server_command = "uv"
 
         if file_path:
-            self.file_path = [file_path]
+            self.file_path = ["run", "python", file_path]
         else:
             self.file_path = []
 
@@ -140,6 +141,7 @@ class MCPClient:
             server_params = StdioServerParameters(
                 command=self.server_command,
                 args=self.file_path,
+                env=os.environ.copy()
             )
 
             async with stdio_client(
