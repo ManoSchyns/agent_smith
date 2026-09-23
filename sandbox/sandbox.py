@@ -9,13 +9,22 @@ from typing import Any
 
 class Sandbox:
 
+    """
+    A protected sandbox that executes the desired commands
+    in a protected environment
+
+    Args:
+        config(str): The sandbox configuration
+        connection_mcp: The connection type to the MCP server
+        url_connection: The URL for connecting to the MCP server
+        file_path: The path to the MCP server
+    """
     def __init__(self, config: str | None = None,
                  connection_mcp: str | None = None,
                  url_connection: str | None = None,
                  file_path: str | None = None):
         self.config = self._load_config(config)
 
-        # Informations nécessaires au worker
         self.connection_mcp = connection_mcp
         self.url_connection = url_connection
         self.file_path = file_path
@@ -41,14 +50,14 @@ class Sandbox:
 
     def _load_config(self, config: str | None) -> SandboxConfig:
         """
-        Charge la configuration du fichier. En cas d'erreur,
-        utilisation de la config par default
+       Loads the configuration file. In case of error,
+        the default configuration is used.
 
         Arg:
-            config (str | None): La config a charger
+            config(str | None): The configuration to load
 
         Return:
-            SandboxConfig: La classe de configuration
+            SandboxConfig: The configuration class
         """
         if not config:
             return SandboxConfig()
@@ -60,13 +69,13 @@ class Sandbox:
         except (PermissionError, FileNotFoundError,
                 UnicodeDecodeError, ValidationError,
                 json.decoder.JSONDecodeError):
-            print("La configuration n'a pas pu etre utilisee."
-                  " Utilisation de la configuration par default.")
+            print("The configuration could not be used."
+                  " Using the default configuration.")
             return SandboxConfig()
 
     def deploy(self) -> None:
         """
-        Depoie la sandbox en lecture REPL-Style
+        Depoie the sandbox in REPL-Style reading mode
         """
         while True:
 
@@ -93,11 +102,17 @@ class Sandbox:
 
     def execute(self, command: str) -> Any:
         """
-        Envoie une commande au worker.
+        Execute the command in the sandbox
+
+        Arg:
+            command (str): La commande
+
+        Return
+            Le resultat de la commande
         """
 
         if not self.process.is_alive():
-            raise RuntimeError("Le worker de la sandbox est arrêté.")
+            raise RuntimeError("The sandbox worker has stopped.")
 
         # Envoie la commande
         self.commands.put(command)
@@ -108,7 +123,7 @@ class Sandbox:
         return result
 
     def close(self) -> None:
-        """Arrête proprement le worker."""
+        """Stop the sandbox"""
 
         if self.process.is_alive():
 

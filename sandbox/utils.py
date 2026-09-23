@@ -57,6 +57,7 @@ SAFE_BUILTINS = {
 }
 
 
+# Forbideb import for Internet Connections
 FORBIDEN_IMPORTS = [
     "socket",
     "ssl",
@@ -76,6 +77,15 @@ FORBIDEN_IMPORTS = [
 
 
 def is_import_forbidden(name: str) -> bool:
+    """
+    Checks if the attempted import is allowed or not
+
+    Args:
+        name (str): The import
+
+    Return
+        True / False if allowed or not
+    """
     for forbidden in FORBIDEN_IMPORTS:
 
         if forbidden.endswith(".*"):
@@ -92,14 +102,14 @@ def is_import_forbidden(name: str) -> bool:
 
 def is_import_allowed(name: str, authorized_imports: list[str]) -> bool:
     """
-    Dis si name esr dans la liste des imports autorisées
+    Checks if name is in the list of allowed imports
 
-    Arg:
-        name (str): l'import a vérifier
-        authorized_imports (list[str]): les imports autorisées
+    Args:
+        name (str): the import to check
+        authorized_imports (list[str]): the allowed imports
 
     Return:
-        True / False en fonction de si l'import est autorisé
+        True / False depending on whether the import is allowed
     """
 
     if is_import_forbidden(name):
@@ -123,6 +133,16 @@ def is_path_allowed(
         path_file: str,
         allowed_directories: list[str]
         ) -> bool:
+    """
+    Determines if the file is allowed in the sandbox
+
+    Args:
+        path_file (str): The file name
+        allowed_directories (list): The allowed paths
+
+    Return:
+        True / False if it is allowed or not
+    """
 
     try:
         path = Path(path_file).resolve()
@@ -143,6 +163,15 @@ def is_path_allowed(
 
 
 def get_manual(tools: list) -> str:
+    """
+    Return the manual for a given list of tools
+
+    Arg:
+        tools(list): The specified tools
+
+    Return:
+        (str): The description of each tool
+    """
 
     manual = ""
 

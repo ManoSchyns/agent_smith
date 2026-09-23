@@ -24,10 +24,16 @@ def worker(
     file_path: str
 ) -> None:
     """
-    Processus permanent de la sandbox.
+    Main sandbox process
+    Executes commands in the secure environment
 
-    Le namespace appartient au worker et persiste
-    pendant toute sa durée de vie.
+    Args:
+        commands (Queue): The queue of executed commands
+        results (Queue): The queue of results
+        config_dict: The sandbox configuration
+        connection_mcp: The connection type to the MCP server
+        url_connection: The URL for connecting to the MCP server
+        file_path: The path to the MCP server
     """
     config = SandboxConfig(**config_dict)
 
@@ -54,6 +60,10 @@ def worker(
         )
 
     def restricted_open(file: str, *args: Any, **kwargs: Any) -> Any:
+        """
+        An additional layer has an open function to
+        restrict access to files.
+        """
 
         if not is_path_allowed(
             file,
@@ -66,9 +76,7 @@ def worker(
         return open(file, *args, **kwargs)
 
     # TODO:
-    # Les contraintes. La sandbox est bien lancée, maintenant ->
-    # limitation en mémoire, temps, imports, ect ...
-    # + Structure du code
+    # Il reste: Execution timeout et Memory limits:
 
     # Namespace persistant
     namespace: dict[str, Any] = {
@@ -79,7 +87,7 @@ def worker(
         },
     }
 
-    # Définitions MCP utilisées pour le manuel
+    # Recuperations des tools MCP
     tool_definitions = []
 
     client_mcp = None
@@ -111,7 +119,7 @@ def worker(
                     f"n'a pas pu être établie : {e}"
                 )
 
-        # Fonction spéciale de la sandbox
+        # Ajout de final answer
         namespace["final_answer"] = final_answer
 
         # Boucle permanente
@@ -123,7 +131,7 @@ def worker(
             if command is None:
                 break
 
-            # Commande spéciale
+            # Commande manuel
             if command == "help":
                 results.put(get_manual(tool_definitions))
                 continue
