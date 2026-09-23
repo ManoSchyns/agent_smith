@@ -1,4 +1,5 @@
 from pathlib import Path
+import resource
 
 
 # Safe Builtins allowed
@@ -185,6 +186,37 @@ def get_manual(tools: list) -> str:
     manual += "===================\n"
 
     return manual
+
+
+def set_memory_limits(memory_limits: int, curr_hard: int) -> None:
+    """
+    Limits the memory of the current process
+
+    Argument:
+        memory_limits(int): The memory to limit
+        curr_hard (int): the original hard memory
+    """
+    max_memory_bites = memory_limits * 1024 * 1024
+    resource.setrlimit(
+            resource.RLIMIT_AS,
+            (max_memory_bites,
+             curr_hard)
+    )
+
+
+def set_memory_back(old_soft: int, hard: int) -> None:
+    """
+    Restores the memory to its original state
+
+    Arguments:
+        old_soft (int): the original soft memory
+        hard (int): the original hard memory
+    """
+    resource.setrlimit(
+        resource.RLIMIT_AS,
+        (old_soft,
+         hard)
+    )
 
 
 def final_answer() -> None:

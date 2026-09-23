@@ -23,5 +23,5 @@ class SandboxConfig(BaseModel):
         "/testbed", "/tmp/agent"
     ])
 
-    max_execution_time_seconds: int = 30
-    max_memory_mb: int = 51
+    max_execution_time_seconds: int = Field(default=30, gt=0)
+    max_memory_mb: int = Field(default=512, gt=0)

@@ -1,6 +1,7 @@
 
 import io
 import builtins
+import resource
 
 from typing import Any, Callable
 
@@ -12,7 +13,9 @@ from contextlib import redirect_stdout, redirect_stderr
 from .models import SandboxConfig
 from .utils import (SAFE_BUILTINS,
                     is_import_allowed, is_path_allowed,
-                    get_manual, final_answer)
+                    get_manual, final_answer,
+                    set_memory_limits,
+                    set_memory_back)
 
 
 def worker(
@@ -36,6 +39,9 @@ def worker(
         file_path: The path to the MCP server
     """
     config = SandboxConfig(**config_dict)
+    old_soft, old_hard = resource.getrlimit(
+        resource.RLIMIT_AS
+    )
 
     def restricted_import(name: str, globals: dict | None = None,
                           locals: dict | None = None,
@@ -74,9 +80,6 @@ def worker(
             )
 
         return open(file, *args, **kwargs)
-
-    # TODO:
-    # Il reste: Execution timeout et Memory limits:
 
     # Namespace persistant
     namespace: dict[str, Any] = {
@@ -122,6 +125,7 @@ def worker(
         # Ajout de final answer
         namespace["final_answer"] = final_answer
 
+        set_memory_limits(config.max_memory_mb, old_hard)
         # Boucle permanente
         while True:
 
@@ -147,7 +151,8 @@ def worker(
                     "success": True,
                     "stdout": stdout.getvalue(),
                     "stderr": stderr.getvalue(),
-                    "error": None
+                    "error": None,
+                    "kill": False
                 })
 
             except Exception as e:
@@ -156,10 +161,24 @@ def worker(
                     "success": False,
                     "stdout": stdout.getvalue(),
                     "stderr": stderr.getvalue(),
-                    "error": str(e)
+                    "error": str(e),
+                    "kill": False
                 })
 
-    finally:
+    except (RuntimeError, MemoryError):
+        set_memory_back(old_soft, old_hard)
+        results.put({
+            "success": False,
+            "stdout": "",
+            "stderr": "",
+            "error": "",
+            "kill": True
+        })
+        print("Memory limits exceded.")
 
+    except (EOFError, KeyboardInterrupt):
+        pass
+
+    finally:
         if client_mcp:
             client_mcp.close()

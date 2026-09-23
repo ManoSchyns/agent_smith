@@ -3,6 +3,7 @@ from .sandbox_process import worker
 from .models import SandboxConfig
 import multiprocessing
 from multiprocessing import Queue
+from queue import Empty
 import json
 from typing import Any
 
@@ -77,28 +78,30 @@ class Sandbox:
         """
         Depoie the sandbox in REPL-Style reading mode
         """
-        while True:
-
+        while self.process.is_alive():
             try:
                 command = input(">>> ")
 
                 if command == "exit":
                     break
-                else:
-                    value = self.execute(command)
-                    if value:
-                        if isinstance(value, str):
-                            print(value)
-                        elif value["stdout"]:
+
+                value = self.execute(command)
+                if value:
+                    if isinstance(value, str):
+                        print(value)
+                    else:
+                        if value["kill"]:
+                            break
+                        if value["stdout"]:
                             print(value["stdout"])
-                        elif value["stderr"]:
+                        if value["stderr"]:
                             print(value["stderr"])
-                        elif value["error"]:
+                        if value["error"]:
                             print(value["error"])
 
             except (EOFError, KeyboardInterrupt, RuntimeError):
-                self.close()
                 break
+        self.close()
 
     def execute(self, command: str) -> Any:
         """
@@ -117,8 +120,16 @@ class Sandbox:
         # Envoie la commande
         self.commands.put(command)
 
-        # Attend le résultat
-        result = self.results.get()
+        try:
+            # Attend le résultat
+            result = self.results.get(
+                timeout=self.config.max_execution_time_seconds
+            )
+        except Empty:
+            print("The program did not finish "
+                  "within the allotted time.")
+            self.process.terminate()
+            raise KeyboardInterrupt("End")
 
         return result
 
