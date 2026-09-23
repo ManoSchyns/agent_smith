@@ -1,0 +1,157 @@
+
+import io
+import builtins
+
+from typing import Any, Callable
+
+from multiprocessing import Queue
+from src.mcp.mcp_client import MCPClient
+
+from contextlib import redirect_stdout, redirect_stderr
+
+from .models import SandboxConfig
+from .utils import (SAFE_BUILTINS,
+                    is_import_allowed, is_path_allowed,
+                    get_manual, final_answer)
+
+
+def worker(
+    commands: Queue,
+    results: Queue,
+    config_dict: dict,
+    connection_mcp: str,
+    url_connection: str,
+    file_path: str
+) -> None:
+    """
+    Processus permanent de la sandbox.
+
+    Le namespace appartient au worker et persiste
+    pendant toute sa durée de vie.
+    """
+    config = SandboxConfig(**config_dict)
+
+    def restricted_import(name: str, globals: dict | None = None,
+                          locals: dict | None = None,
+                          fromlist: tuple = (), level: int = 0) -> Any:
+        """
+        Redéfinition de la fonction __import__ pour
+        vérifier avant chaque import que celui-ci est autorisé
+        """
+        autorized: list[str] = config.authorized_imports
+
+        if not is_import_allowed(name, autorized):
+            raise ImportError(
+                f"Import de '{name}' interdit dans la sandbox."
+            )
+
+        return builtins.__import__(
+            name,
+            globals,
+            locals,
+            fromlist,
+            level
+        )
+
+    def restricted_open(file: str, *args: Any, **kwargs: Any) -> Any:
+
+        if not is_path_allowed(
+            file,
+            config.allowed_directories
+        ):
+            raise PermissionError(
+                f"Accès interdit : {file}"
+            )
+
+        return open(file, *args, **kwargs)
+
+    # TODO:
+    # Les contraintes. La sandbox est bien lancée, maintenant ->
+    # limitation en mémoire, temps, imports, ect ...
+    # + Structure du code
+
+    # Namespace persistant
+    namespace: dict[str, Any] = {
+        "__builtins__": {
+            **SAFE_BUILTINS,
+            "__import__": restricted_import,
+            "open": restricted_open
+        },
+    }
+
+    # Définitions MCP utilisées pour le manuel
+    tool_definitions = []
+
+    client_mcp = None
+
+    try:
+
+        if connection_mcp:
+            try:
+                client_mcp = MCPClient(
+                    connection_mcp,
+                    file_path=file_path,
+                    server_url=url_connection
+                )
+
+                client_mcp.connect()
+
+                tool_definitions = client_mcp.list_tools()
+
+                tool_callables: dict[str,
+                                     Callable] = client_mcp.get_tools_callable(
+                    tool_definitions
+                )
+
+                namespace.update(tool_callables)
+
+            except Exception as e:
+                print(
+                    "La connexion avec le serveur MCP "
+                    f"n'a pas pu être établie : {e}"
+                )
+
+        # Fonction spéciale de la sandbox
+        namespace["final_answer"] = final_answer
+
+        # Boucle permanente
+        while True:
+
+            command = commands.get()
+
+            # Demande d'arrêt
+            if command is None:
+                break
+
+            # Commande spéciale
+            if command == "help":
+                results.put(get_manual(tool_definitions))
+                continue
+
+            try:
+                stdout = io.StringIO()
+                stderr = io.StringIO()
+
+                with redirect_stdout(stdout), redirect_stderr(stderr):
+                    exec(command, namespace)
+
+                results.put({
+                    "success": True,
+                    "stdout": stdout.getvalue(),
+                    "stderr": stderr.getvalue(),
+                    "error": None
+                })
+
+            except Exception as e:
+
+                results.put({
+                    "success": False,
+                    "stdout": stdout.getvalue(),
+                    "stderr": stderr.getvalue(),
+                    "error": str(e)
+                })
+
+    finally:
+
+        if client_mcp:
+            client_mcp.close()
