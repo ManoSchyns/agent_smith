@@ -175,13 +175,21 @@ def get_manual(tools: list) -> str:
     """
 
     manual = ""
+    uses: str = ("\ncall final_answer(your_solution_code)"
+                 " — pass your Python code as the argument\n")
 
     for tool in tools:
+        if tool.name == "get_patch":
+            uses = ("\ncall final_answer(get_patch()) — pass "
+                    "the git patch retrieved via get_patch() "
+                    "as the argument\n")
+
         manual += f"\nFunction: {tool.name}\n"
         manual += f"{tool.description}\n"
         manual += "===================\n"
 
     manual += f"\nFunction: {final_answer.__name__}\n"
+    manual += uses
     manual += f"{final_answer.__doc__}\n"
     manual += "===================\n"
 
@@ -219,6 +227,11 @@ def set_memory_back(old_soft: int, hard: int) -> None:
     )
 
 
-def final_answer() -> None:
-    "test"
-    print("nice")
+def final_answer(result: str) -> None:
+    """
+    Call final_answer when the job is finished.
+
+    Arg:
+        result(str): The solution
+    """
+    print(result)

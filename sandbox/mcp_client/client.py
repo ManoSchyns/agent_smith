@@ -206,7 +206,7 @@ class MCPClient:
 
         self.start_loop()
 
-        self.connected.wait(timeout=5)
+        self.connected.wait(timeout=1)
 
         if self._error is not None:
             raise MCPClientError(

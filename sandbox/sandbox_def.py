@@ -1,6 +1,6 @@
 from pydantic import ValidationError
-from .sandbox_process import worker
-from .models import SandboxConfig
+from sandbox_process import worker
+from models import SandboxConfig
 import multiprocessing
 from multiprocessing import Queue
 from queue import Empty
@@ -90,6 +90,10 @@ class Sandbox:
                     if isinstance(value, str):
                         print(value)
                     else:
+                        if value["ended"]:
+                            print(value)
+                            print("Final answer a ete appele.")
+                            break
                         if value["kill"]:
                             break
                         if value["stdout"]:
@@ -126,10 +130,9 @@ class Sandbox:
                 timeout=self.config.max_execution_time_seconds
             )
         except Empty:
-            print("The program did not finish "
-                  "within the allotted time.")
             self.process.terminate()
-            raise KeyboardInterrupt("End")
+            return ("The program did not finish "
+                    "within the allotted time.")
 
         return result
 
@@ -151,7 +154,8 @@ class Sandbox:
 
 if __name__ == "__main__":
     sandbox = Sandbox(config="config.json",
-                      connection_mcp="stdio",
+                      connection_mcp="http",
+                      url_connection="http://127.0.0.3:8000/mcp",
                       file_path="mcp_tools_mbpp.py")
     try:
         sandbox.deploy()

@@ -6,16 +6,16 @@ import resource
 from typing import Any, Callable
 
 from multiprocessing import Queue
-from src.mcp.mcp_client import MCPClient
+from mcp_client import MCPClient
 
 from contextlib import redirect_stdout, redirect_stderr
 
-from .models import SandboxConfig
-from .utils import (SAFE_BUILTINS,
-                    is_import_allowed, is_path_allowed,
-                    get_manual, final_answer,
-                    set_memory_limits,
-                    set_memory_back)
+from models import SandboxConfig
+from utils import (SAFE_BUILTINS,
+                   is_import_allowed, is_path_allowed,
+                   get_manual, final_answer,
+                   set_memory_limits,
+                   set_memory_back)
 
 
 def worker(
@@ -147,7 +147,12 @@ def worker(
                 with redirect_stdout(stdout), redirect_stderr(stderr):
                     exec(command, namespace)
 
+                ended = False
+                if "final_answer" in command:
+                    ended = True
+
                 results.put({
+                    "ended": ended,
                     "success": True,
                     "stdout": stdout.getvalue(),
                     "stderr": stderr.getvalue(),
@@ -158,6 +163,7 @@ def worker(
             except Exception as e:
 
                 results.put({
+                    "ended": False,
                     "success": False,
                     "stdout": stdout.getvalue(),
                     "stderr": stderr.getvalue(),
@@ -168,6 +174,7 @@ def worker(
     except (RuntimeError, MemoryError):
         set_memory_back(old_soft, old_hard)
         results.put({
+            "ended": False,
             "success": False,
             "stdout": "",
             "stderr": "",
