@@ -1,6 +1,6 @@
 from .llm_provider_model import LLmOutput, LlmError
 from google import genai
-from utils import current_milli_time
+from .utils import current_milli_time
 
 
 class GeminiProvider:

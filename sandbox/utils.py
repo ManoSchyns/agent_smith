@@ -1,5 +1,7 @@
 from pathlib import Path
 import resource
+from io import StringIO
+from typing import Callable
 
 
 # Safe Builtins allowed
@@ -163,7 +165,7 @@ def is_path_allowed(
         return False
 
 
-def get_manual(tools: list) -> str:
+def get_manual(tools: list, final_answer: Callable) -> str:
     """
     Return the manual for a given list of tools
 
@@ -226,12 +228,21 @@ def set_memory_back(old_soft: int, hard: int) -> None:
          hard)
     )
 
-
-def final_answer(result: str) -> None:
+def make_final_answer(stdout: StringIO) -> Callable:
     """
-    Call final_answer when the job is finished.
-
-    Arg:
-        result(str): The solution
+    An additional layer is added to final_answer
+    to give it the stdout context.
     """
-    print(result)
+
+    def final_answer(result: str) -> None:
+        """
+        Call final_answer when the job is finished.
+
+        Arg:
+            result(str): The solution
+        """
+        stdout.seek(0)
+        stdout.truncate(0)
+        print(result)
+
+    return final_answer

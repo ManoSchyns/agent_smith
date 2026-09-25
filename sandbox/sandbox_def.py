@@ -1,6 +1,6 @@
 from pydantic import ValidationError
-from sandbox_process import worker
-from models import SandboxConfig
+from .sandbox_process import worker
+from .models import SandboxConfig
 import multiprocessing
 from multiprocessing import Queue
 from queue import Empty

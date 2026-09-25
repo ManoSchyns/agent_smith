@@ -1,5 +1,5 @@
 from .llm_provider_model import LLmOutput, LlmError
-from utils import current_milli_time
+from .utils import current_milli_time
 import requests  # type: ignore
 import json
 

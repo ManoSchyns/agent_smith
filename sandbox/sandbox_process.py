@@ -3,17 +3,18 @@ import io
 import builtins
 import resource
 
+
 from typing import Any, Callable
 
 from multiprocessing import Queue
-from mcp_client import MCPClient
+from .mcp_client import MCPClient
 
 from contextlib import redirect_stdout, redirect_stderr
 
-from models import SandboxConfig
-from utils import (SAFE_BUILTINS,
+from .models import SandboxConfig
+from .utils import (SAFE_BUILTINS,
                    is_import_allowed, is_path_allowed,
-                   get_manual, final_answer,
+                   get_manual, make_final_answer,
                    set_memory_limits,
                    set_memory_back)
 
@@ -122,6 +123,11 @@ def worker(
                     f"n'a pas pu être établie : {e}"
                 )
 
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+
+        final_answer: Callable = make_final_answer(stdout)
+
         # Ajout de final answer
         namespace["final_answer"] = final_answer
 
@@ -137,12 +143,10 @@ def worker(
 
             # Commande manuel
             if command == "help":
-                results.put(get_manual(tool_definitions))
+                results.put(get_manual(tool_definitions, final_answer))
                 continue
 
             try:
-                stdout = io.StringIO()
-                stderr = io.StringIO()
 
                 with redirect_stdout(stdout), redirect_stderr(stderr):
                     exec(command, namespace)

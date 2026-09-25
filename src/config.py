@@ -1,7 +1,7 @@
 from dotenv import load_dotenv
 from typing import Callable
 from functools import partial
-from Llm import GeminiProvider, OpenRouterProvider
+from .Llm import GeminiProvider, OpenRouterProvider
 import os
 
 
