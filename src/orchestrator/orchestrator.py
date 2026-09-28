@@ -5,12 +5,7 @@ from src.prompt import get_prompt
 from src.sandbox import Sandbox
 
 
-"""
-Exemple de fonctionnement d un agent
-"""
-
-
-def agent_example(prompt: str, model_name: str, provider_url: str) -> None:
+def orchestrateur(prompt: str, model_name: str, provider_url: str) -> str:
     try:
         # On charge le model
         model = PROVIDER[provider_url](model_name=model_name)
@@ -24,11 +19,12 @@ def agent_example(prompt: str, model_name: str, provider_url: str) -> None:
         curr_prompt = get_prompt(sandbox.execute("help"),
                                  prompt)
         while (running):
+            print("Common")
             datas = model.generate(curr_prompt)
 
             try:
                 code = extract_code(datas.content)
-                print(f"======llm tried : {code}\n\n")
+                print("Common2")
                 ret_val = sandbox.execute(code)
                 if isinstance(ret_val, dict) and "ended" in ret_val.keys():
                     if ret_val["ended"] or ret_val["kill"]:
@@ -39,20 +35,16 @@ def agent_example(prompt: str, model_name: str, provider_url: str) -> None:
             except ExtractError as e:
                 curr_prompt += f"\nFor the provided input: {datas.content}"
                 curr_prompt += f"Erreur {e}"
-        print("\n===========\nenddddd\n=================\n")
-        print(ret_val["stdout"])
+            print("Common3")
+
+        return ret_val["stdout"]
                  
 
     except (LlmError, ExtractError) as e:
-        print(e)
+        return str(e)
     except (KeyError):
-        print("The provided URL does not allow access to a known model.")
+        return ("The provided URL does not allow access to a known model.")
     except Exception as e:
-        print(e)
+        return str(e)
     finally:
             sandbox.close()
-
-if __name__ == "__main__":
-    agent_example("Write a function to check whether it follows the sequence given in the patterns array.,def is_samepatterns(colors, patterns):",
-                  "gemini-3.5-flash-lite",
-                  "https://generativelanguage.googleapis.com")

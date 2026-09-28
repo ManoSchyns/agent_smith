@@ -1,9 +1,9 @@
 import json
-from .model import MBPPInput, MBPPError
+from .model import MBPPTaskInput, MBPPError
 from pydantic import ValidationError
 
 
-def load_task_file(task_file: str) -> MBPPInput:
+def load_task_file(task_file: str) -> MBPPTaskInput:
     """
     Charge le fichier de tache
 
@@ -11,13 +11,13 @@ def load_task_file(task_file: str) -> MBPPInput:
         task_file (str): le fichier de tache a charger
 
     Return:
-        MBPPInput: Le fichier pret a l emploi
+        MBPPTaskInput: Le fichier pret a l emploi
     """
     try:
         with open(task_file, "r") as file:
             content = file.read()
             datas = json.loads(content)
-            return MBPPInput(**datas)
+            return MBPPTaskInput(**datas)
     except (FileNotFoundError, PermissionError,
             OSError, UnicodeDecodeError,
             json.decoder.JSONDecodeError,
