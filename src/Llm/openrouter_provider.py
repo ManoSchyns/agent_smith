@@ -67,7 +67,8 @@ class OpenRouterProvider:
                         },
                         ],
                     "reasoning": {"enabled": True}
-                    })
+                    }),
+                    timeout=60
                 )
             reponse.raise_for_status()
             content = reponse.json()

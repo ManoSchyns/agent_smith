@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-import datetime
+from datetime import datetime
 from typing import Optional
 
 
@@ -42,5 +42,4 @@ class SolutionOutput(BaseModel):
     steps: list[StepMetrics] = Field(default_factory=list, description="Per-step metrics, one entry per agent iteration")
     system_prompt: str = Field(default="", description="Full system prompt sent to the LLM (for provenance checking)")
     error: Optional[str] = Field(default=None, description="Error message if the agent failed (None if successful)")
-    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(),
-    description="ISO 8601 timestamp of when the solution was produced")
+    timestamp: str = Field(default_factory=lambda: datetime.now().isoformat(), description="ISO 8601 timestamp of when the solution was produced")

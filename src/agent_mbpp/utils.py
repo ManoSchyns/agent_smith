@@ -1,6 +1,9 @@
 import json
 from .model import MBPPTaskInput, MBPPError
 from pydantic import ValidationError
+from src.orchestrator import SolutionOutput, StepMetrics
+from .model import MBPPTaskInput
+import time
 
 
 def load_task_file(task_file: str) -> MBPPTaskInput:
@@ -25,12 +28,58 @@ def load_task_file(task_file: str) -> MBPPTaskInput:
         raise MBPPError(f"Erreur lors de la recuperation du fichier des taches {e}")
 
 
-def export_result():
+def export_result(file_path: str, solution: SolutionOutput) -> None:
     """
     Export le resultat du model
     TODO
     """
-    pass
+    print("5")
+    try:
+        with open(file_path, "w") as file:
+            json.dump(solution.model_dump(),
+                      file,
+                      indent=4)
+    except (FileNotFoundError, PermissionError,
+            json.JSONDecodeError, OSError) as e:
+        print(f"Export du resultat impossible: {e}")
+
+
+def get_solution_output(output: str, steps: list[StepMetrics],
+                        task: MBPPTaskInput, start_time: float,
+                        system_prompt: str) -> SolutionOutput:
+    is_error: bool = False
+    error: str | None = None
+    if not output == "SUCCESS":
+        is_error = True
+        error = output
+
+    iterations: int = len(steps)
+    total_requests: int = iterations
+    total_input_tokens: int = 0
+    total_output_tokens: int = 0
+    total_time_seconds: float = time.time() - start_time
+
+    for step in steps:
+        total_requests += step.retries
+        total_input_tokens += step.input_tokens
+        total_output_tokens += step.output_tokens
+
+
+    return SolutionOutput(
+        task_id=str(task.task_id),
+        benchmark="MBPP",
+        success=(not is_error),
+        solution=output,
+        iterations=iterations,
+        total_requests=total_requests,
+        total_input_tokens=total_input_tokens,
+        total_output_tokens=total_output_tokens,
+        total_time_seconds=total_time_seconds,
+        steps=steps,
+        system_prompt=system_prompt,
+        error=error
+    )
+
 
 if __name__ == "__main__":
     try:
