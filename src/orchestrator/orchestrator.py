@@ -2,7 +2,7 @@ from src.Llm import LlmError, LLmOutput
 from src.extraction import extract_code, ExtractError
 from src.config import PROVIDER
 from src.prompt import get_prompt
-from sandbox import Sandbox
+from src.sandbox import Sandbox
 
 
 """
@@ -16,9 +16,8 @@ def agent_example(prompt: str, model_name: str, provider_url: str) -> None:
         model = PROVIDER[provider_url](model_name=model_name)
 
         # on charge la sandbox
-        sandbox = Sandbox(config="config.json",
-                          connection_mcp="stdio",
-                          url_connection="http://127.0.0.3:8000/mcp",
+        sandbox = Sandbox(connection_mcp="stdio",
+                          url_connection="http://127.0.0.2:8000/mcp",
                           file_path="mcp_tools_mbpp.py")
 
         running = True

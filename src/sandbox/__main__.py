@@ -1,5 +1,5 @@
 import argparse
-from sandbox_def import Sandbox
+from .sandbox_def import Sandbox
 
 
 def parse_args() -> argparse.Namespace:
