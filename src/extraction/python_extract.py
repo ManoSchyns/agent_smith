@@ -1,35 +1,28 @@
 import re
+from .model import ExtractStrategy
 
 
-def is_python_extract(llm_output: str) -> bool:
-    """
-    Is the output of the LLM enclosed in Python code?
+class PythonStrategy(ExtractStrategy):
 
-    Args:
-        llm_output(str): The output of the LLM
+    """Python Strategy for extraction"""
 
-    Return:
-        True / False if the extraction strategy is Python
-    """
-    pattern: str = r"```python\s*.*?```"
+    def can_extract(self, llm_output: str) -> bool:
+        """
+        Is the output of the LLM enclosed in Python code?
+        """
+        pattern: str = r"```python\s*.*?```"
 
-    if re.search(pattern, llm_output, re.DOTALL):
-        return True
+        if re.search(pattern, llm_output, re.DOTALL):
+            return True
 
-    return False
+        return False
 
+    def extract(self, llm_output: str) -> str:
+        """Extracts the python code from the LLM output"""
 
-def python_extract(llm_output: str) -> str:
-    """
-    Extracts the code from the LLM output
+        if not self.can_extract(llm_output):
+            return ""
 
-    Args:
-        llm_output(str): The LLM output
-
-    Return:
-        str: The code
-    """
-
-    pattern: str = r"```python\s*(.*?)```"
-    codes = re.findall(pattern, llm_output, re.DOTALL)
-    return "".join(codes)
+        pattern: str = r"```python\s*(.*?)```"
+        codes = re.findall(pattern, llm_output, re.DOTALL)
+        return "".join(codes)

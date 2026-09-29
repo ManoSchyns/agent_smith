@@ -11,8 +11,7 @@ def orchestrateur(
         prompt: str,
         model_name: str,
         provider_url: str
-     ) -> tuple[str, str,
-                list[StepMetrics]]:
+     ) -> dict:
     """
     Agent's main loop.
 
@@ -39,14 +38,21 @@ def orchestrateur(
                                  prompt)
         system_prompt = curr_prompt
     except (KeyError):
-        return ("",
-                "The provided URL does not allow access to a known model.",
-                steps)
-    except (LlmError) as e:
-        return ("", str(e), steps)
+        return {
+            "SUCCESS": False,
+            "PROMPT": "",
+            "OUTPUT": ("The provided URL does not allow "
+                       "access to a known model."),
+            "STEPS": steps
+         }
 
-    except Exception as e:
-        return ("", str(e), steps)
+    except (Exception, LlmError) as e:
+        return {
+            "SUCCESS": False,
+            "PROMPT": "",
+            "OUTPUT": str(e),
+            "STEPS": steps
+         }
 
     curr_step: int = 1
     retries: int = 0
@@ -93,11 +99,20 @@ def orchestrateur(
                 curr_prompt += f"\nFor the provided input: {datas.content}"
                 curr_prompt += f"Erreur {e}"
 
-        return (system_prompt, "SUCCESS", steps)
+        return {
+            "SUCCESS": True,
+            "PROMPT": system_prompt,
+            "OUTPUT": ret_val["stdout"],
+            "STEPS": steps
+        }
 
-    except (LlmError) as e:
-        return (system_prompt, str(e), steps)
-    except Exception as e:
-        return (system_prompt, str(e), steps)
+    except (LlmError, Exception) as e:
+        return {
+            "SUCCESS": False,
+            "PROMPT": system_prompt,
+            "OUTPUT": str(e),
+            "STEPS": steps
+        }
+
     finally:
         sandbox.close()

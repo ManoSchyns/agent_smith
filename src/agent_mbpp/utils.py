@@ -45,18 +45,18 @@ def export_result(file_path: str, solution: SolutionOutput) -> None:
         print(f"Export of result impossible: {e}")
 
 
-def get_solution_output(output: str, steps: list[StepMetrics],
-                        task: MBPPTaskInput, start_time: float,
-                        system_prompt: str) -> SolutionOutput:
+def get_solution_output(orchest_output: dict,
+                        start_time: float,
+                        task: MBPPTaskInput) -> SolutionOutput:
     """
     Return the object SolutionOutput
     """
-    is_error: bool = False
+    is_error: bool = orchest_output["SUCCESS"]
     error: str | None = None
-    if not output == "SUCCESS":
-        is_error = True
-        error = output
+    if not is_error:
+        error = orchest_output["OUTPUT"]
 
+    steps: list[StepMetrics] = orchest_output["STEPS"]
     iterations: int = len(steps)
     total_requests: int = iterations
     total_input_tokens: int = 0
@@ -71,15 +71,15 @@ def get_solution_output(output: str, steps: list[StepMetrics],
     return SolutionOutput(
         task_id=str(task.task_id),
         benchmark="MBPP",
-        success=(not is_error),
-        solution=output,
+        success=is_error,
+        solution=orchest_output["OUTPUT"],
         iterations=iterations,
         total_requests=total_requests,
         total_input_tokens=total_input_tokens,
         total_output_tokens=total_output_tokens,
         total_time_seconds=total_time_seconds,
         steps=steps,
-        system_prompt=system_prompt,
+        system_prompt=orchest_output["PROMPT"],
         error=error
     )
 
