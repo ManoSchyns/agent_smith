@@ -1,20 +1,19 @@
 import json
 from .model import MBPPTaskInput, MBPPError
 from pydantic import ValidationError
-from src.orchestrator import SolutionOutput, StepMetrics
-from .model import MBPPTaskInput
+from src.orchestrators import SolutionOutput, StepMetrics
 import time
 
 
 def load_task_file(task_file: str) -> MBPPTaskInput:
     """
-    Charge le fichier de tache
+    Loads the task file
 
     Arg:
-        task_file (str): le fichier de tache a charger
+        task_file(str): the task file to load
 
     Return:
-        MBPPTaskInput: Le fichier pret a l emploi
+        MBPPTaskInput: The ready-to-use file
     """
     try:
         with open(task_file, "r") as file:
@@ -25,15 +24,17 @@ def load_task_file(task_file: str) -> MBPPTaskInput:
             OSError, UnicodeDecodeError,
             json.decoder.JSONDecodeError,
             ValidationError) as e:
-        raise MBPPError(f"Erreur lors de la recuperation du fichier des taches {e}")
+        raise MBPPError(f"Error retrieving task file {e}")
 
 
 def export_result(file_path: str, solution: SolutionOutput) -> None:
     """
-    Export le resultat du model
-    TODO
+    Export the model's output
+
+    Args:
+        file_path (str): the export file
+        solution (SolutionOutput): The model's solution
     """
-    print("5")
     try:
         with open(file_path, "w") as file:
             json.dump(solution.model_dump(),
@@ -41,12 +42,15 @@ def export_result(file_path: str, solution: SolutionOutput) -> None:
                       indent=4)
     except (FileNotFoundError, PermissionError,
             json.JSONDecodeError, OSError) as e:
-        print(f"Export du resultat impossible: {e}")
+        print(f"Export of result impossible: {e}")
 
 
 def get_solution_output(output: str, steps: list[StepMetrics],
                         task: MBPPTaskInput, start_time: float,
                         system_prompt: str) -> SolutionOutput:
+    """
+    Return the object SolutionOutput
+    """
     is_error: bool = False
     error: str | None = None
     if not output == "SUCCESS":
@@ -63,7 +67,6 @@ def get_solution_output(output: str, steps: list[StepMetrics],
         total_requests += step.retries
         total_input_tokens += step.input_tokens
         total_output_tokens += step.output_tokens
-
 
     return SolutionOutput(
         task_id=str(task.task_id),

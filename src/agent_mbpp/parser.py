@@ -3,10 +3,10 @@ import argparse
 
 def parse_args() -> argparse.Namespace:
     """
-    Parse les arguments mis en ligne de commande et les recuperes
+    Parses the arguments passed to the command line and retrieves them
 
     Return:
-        Un object argparse avec les arguments recuperes
+        An argparse object with the retrieved arguments
     """
     parser = argparse.ArgumentParser(
         description="MBPP agent"
@@ -40,15 +40,15 @@ def parse_args() -> argparse.Namespace:
 
 def analyse_args(parser: argparse.Namespace) -> bool:
     """
-    Analyse les arguments parse. Verifie leurs validite
+    Parses the arguments. Checks their validity.
 
     Arg:
-        Object argparse avec les args
+        Object argparse with the arguments
 
     Return
-        True / False si les arguments sont valides
+        True / False if the arguments are valid
     """
-    KEYS=[
+    KEYS = [
         "task_file",
         "output",
         "model_name",
@@ -58,11 +58,12 @@ def analyse_args(parser: argparse.Namespace) -> bool:
     args_dict: dict = vars(parser)
     try:
         for key in KEYS:
-            if args_dict[key] == None:
+            if args_dict[key] is None:
                 return False
     except KeyError:
         return False
     return True
+
 
 if __name__ == "__main__":
     parser = parse_args()

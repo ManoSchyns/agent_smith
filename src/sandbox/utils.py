@@ -228,6 +228,7 @@ def set_memory_back(old_soft: int, hard: int) -> None:
          hard)
     )
 
+
 def make_final_answer(stdout: StringIO) -> Callable:
     """
     An additional layer is added to final_answer

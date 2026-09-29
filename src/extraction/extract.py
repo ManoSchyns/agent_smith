@@ -21,8 +21,4 @@ def extract_code(llm_output: str) -> str:
     if is_python_extract(llm_output):
         return python_extract(llm_output)
     else:
-        raise ExtractError(
-            "No extraction method "
-            "does not allow obtaining the code or there is no "
-            f"code of everything in the output: {llm_output}"
-        )
+        return llm_output

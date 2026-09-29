@@ -1,0 +1,11 @@
+1) Extraction du code. Ameliorer a balle. Les IA comprennent mais l'extraction pue:
+
+<tool_call>final_answer
+<arg_key>result</arg_key>
+<arg_value>def pos_count(lst):
+    count = 0
+    for num in lst:
+        if num > 0:
+            count += 1
+    return count</arg_value>
+</tool_call>
