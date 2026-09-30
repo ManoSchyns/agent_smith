@@ -94,6 +94,7 @@ def export_scipt(script: str, container) -> None:
 
     Arg:
         script (str): the script
+        container: The container
     """
     EVAL_SCRIPT = "../../script.sh"
     SCIPT_PATH = Path(__file__).parent/EVAL_SCRIPT
@@ -105,11 +106,11 @@ def export_scipt(script: str, container) -> None:
         subprocess.run(
             ["chmod","u+x", SCIPT_PATH.absolute()]
             )
-        print(container.id)
+    
         subprocess.run(
             ["docker", "cp", SCIPT_PATH.absolute(), f"{container.id}:."]   
         )
-        print(container.id)
+    
 
     except (FileExistsError, FileNotFoundError,
             UnicodeDecodeError,
@@ -118,6 +119,12 @@ def export_scipt(script: str, container) -> None:
 
 
 def start_docker(image: str) -> None:
+    """
+    Lance le conteneur de l'image
+
+    Arg:
+        image (str): l'image docker
+    """
     client = docker.from_env()
 
     container = client.containers.run(

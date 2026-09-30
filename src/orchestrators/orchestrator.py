@@ -69,6 +69,7 @@ def orchestrateur(
 
     try:
         while (running):
+            print("here")
             datas: LLmOutput = model.generate(curr_prompt)
             print("\n\n=======LLM output======")
             print(datas.content)

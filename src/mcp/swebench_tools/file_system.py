@@ -6,7 +6,7 @@ import fnmatch
 
 def get_container_id():
     try:
-        return os.environ["SCIPT_PATH"]
+        return os.environ["CONTAINER_ID"]
     except KeyError:
         return None
 

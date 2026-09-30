@@ -13,7 +13,7 @@ def run_tests_tool() -> str:
     """
 
     try:
-        ID = os.environ["SCIPT_PATH"]
+        ID = os.environ["CONTAINER_ID"]
     except KeyError:
         return json.dumps({
             "success": False,
@@ -40,7 +40,7 @@ def get_patch_tool() -> str:
         A JSON object with the result if successed or not and the git diffs
     """
     try:
-        ID = os.environ["SCIPT_PATH"]
+        ID = os.environ["CONTAINER_ID"]
     except KeyError:
         return json.dumps({
             "success": False,
@@ -70,7 +70,7 @@ def run_command_tool(command: str, workdir: str) -> str:
         Returns the command’s stdout, stderr, and exit code
     """
     try:
-        ID = os.environ["SCIPT_PATH"]
+        ID = os.environ["CONTAINER_ID"]
     except KeyError:
         return json.dumps({
             "success": False,

@@ -23,7 +23,6 @@ def swebench_agent() -> None:
 
         container = start_docker(task.docker_image)
         export_scipt(task.eval_script, container)
-        return
 
         prompt_task: str = (task.problem_statement + " " +
                                 task.hints_text)
