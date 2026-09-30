@@ -78,7 +78,7 @@ class OpenRouterProvider:
             raise LlmError(e)
 
         return LLmOutput(
-            content=content["choices"][0]["message"]["content"],
+            content=content["choices"][0]["message"]["content"] or "",
             reponse_time=start_time - current_milli_time(),
             total_input_tokens=content["usage"]["prompt_tokens"],
             total_output_tokens=content["usage"]["completion_tokens"],

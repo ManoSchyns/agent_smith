@@ -46,7 +46,7 @@ class FunctionCallStrategy(ExtractStrategy):
                     if value[0] == '[':
                         curr_tool += value
                     else:
-                        curr_tool += f'"""{value}"""'
+                        curr_tool += str(value)
                 if i < len(values) - 1:
                     curr_tool += ","
 

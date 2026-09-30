@@ -63,7 +63,7 @@ class GeminiProvider:
             raise LlmError(e)
 
         return LLmOutput(
-            content=content.output_text,
+            content=content.output_text or "",
             reponse_time=start_time - current_milli_time(),
             total_input_tokens=content.usage.total_input_tokens,
             total_output_tokens=content.usage.total_output_tokens,

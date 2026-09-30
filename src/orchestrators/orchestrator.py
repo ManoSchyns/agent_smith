@@ -25,6 +25,11 @@ def orchestrateur(
     curr_prompt: str = ""
     steps: list[StepMetrics] = []
 
+    file_path: str = "mcp_tools_mbpp.py"
+    if type == "swebench":
+        file_path = "mcp_tools_swebench.py"
+
+
     try:
         # On charge le model
         model = PROVIDER[provider_url](model_name=model_name)
@@ -32,7 +37,7 @@ def orchestrateur(
         # on charge la sandbox
         sandbox = Sandbox(connection_mcp="stdio",
                           url_connection="http://127.0.0.2:8000/mcp",
-                          file_path="mcp_tools_mbpp.py")
+                          file_path=file_path)
 
         curr_prompt = get_prompt(sandbox.execute("help"),
                                  prompt)

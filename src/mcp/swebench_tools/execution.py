@@ -11,11 +11,17 @@ def run_tests_tool() -> str:
     Return:
         A JSON object with the result if successed or not
     """
-    EVAL_SCRIPT = "../../../script.sh"
-    SCIPT_PATH = Path(__file__).parent/EVAL_SCRIPT
+
+    try:
+        ID = os.environ["SCIPT_PATH"]
+    except KeyError:
+        return json.dumps({
+            "success": False,
+            "output": "Unable to get the id of the docker"
+        })
 
     result = subprocess.run(
-        ["bash", str(SCIPT_PATH)],
+        ["docker", "exec", ID, "bash", "script.sh"],
         capture_output=True,
         text=True
     )
@@ -34,15 +40,14 @@ def get_patch_tool() -> str:
         A JSON object with the result if successed or not and the git diffs
     """
     try:
-        DIRECTORY = os.environ["TESTBED_PATH"]
+        ID = os.environ["SCIPT_PATH"]
     except KeyError:
         return json.dumps({
             "success": False,
-            "output": "Unable to find the folder to do the get patch"
+            "output": "Unable to get the id of the docker"
         })
     result = subprocess.run(
-        ["git", "-c", "core.fileMode=false", "diff"],
-        cwd=DIRECTORY,
+        ["docker", "exec", ID, "git", "-c", "core.fileMode=false", "diff"],
         capture_output=True,
         text=True
     )
@@ -64,13 +69,22 @@ def run_command_tool(command: str, workdir: str) -> str:
     Return:
         Returns the command’s stdout, stderr, and exit code
     """
+    try:
+        ID = os.environ["SCIPT_PATH"]
+    except KeyError:
+        return json.dumps({
+            "success": False,
+            "output": "Unable to get the id of the docker"
+        })
+
+   
+
     result = subprocess.run(
-        command,
-        cwd=workdir,
-        shell=True,
+        ["docker", "exec", "-w", workdir, ID, command],
         capture_output=True,
         text=True
     )
+
     return json.dumps({
             "exit_code": result.returncode,
             "stdout": result.stdout,

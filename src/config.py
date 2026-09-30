@@ -14,6 +14,7 @@ GEMINI_API_KEYS = [
 
 OPEN_ROUTER_API_KEYS = [
     os.environ["OPEN_ROUTER_KEY"],
+    os.environ["OPEN_ROUTER_EXTRA"],
     os.environ["OPEN_ROUTER_KEY_1"],
     os.environ["OPEN_ROUTER_KEY_2"],
     os.environ["OPEN_ROUTER_KEY_3"],
