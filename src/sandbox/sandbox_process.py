@@ -185,7 +185,6 @@ def worker(
             "error": "",
             "kill": True
         })
-        print("Memory limits exceded.")
 
     except (EOFError, KeyboardInterrupt):
         pass

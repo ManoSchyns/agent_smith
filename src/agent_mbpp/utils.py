@@ -61,7 +61,7 @@ def get_solution_output(orchest_output: dict,
     total_requests: int = iterations
     total_input_tokens: int = 0
     total_output_tokens: int = 0
-    total_time_seconds: float = time.time() - start_time
+    total_time_seconds: float = time.perf_counter() - start_time
 
     for step in steps:
         total_requests += step.retries

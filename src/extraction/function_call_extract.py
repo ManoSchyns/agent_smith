@@ -2,15 +2,15 @@ import re
 from .model import ExtractStrategy
 
 
-class ToolCallStrategyFirst(ExtractStrategy):
+class FunctionCallStrategy(ExtractStrategy):
 
-    """Tool Call Strategy for extraction"""
+    """Function Call Strategy for extraction"""
 
     def can_extract(self, llm_output: str) -> bool:
         """
-        Is the output of the LLM enclosed in tool call code?
+        Is the output of the LLM enclosed in Function call code?
         """
-        pattern: str = r"<tool_call>\s*.*?</tool_call>"
+        pattern: str = r"<function_calls>\s*.*?</function_calls>"
 
         if re.search(pattern, llm_output, re.DOTALL):
             return True
@@ -18,24 +18,26 @@ class ToolCallStrategyFirst(ExtractStrategy):
         return False
 
     def extract(self, llm_output: str) -> str:
-        """Extracts the tool call code from the LLM output"""
+        """Extracts the Function call code from the LLM output"""
 
         if not self.can_extract(llm_output):
             return ""
 
         tools: list[str] = []
 
-        pattern: str = r"<tool_call>\s*(.*?)</tool_call>"
+        pattern: str = r"<function_calls>\s*(.*?)</function_calls>"
         codes = re.findall(pattern, llm_output, re.DOTALL)
         for elem in codes:
             if not elem:
                 continue
+
             curr_tool: str = ""
-            curr_tool += elem.splitlines()[0]
+            curr_tool += elem.splitlines()[0].split('"')[1]
             curr_tool += "("
 
-            pattern = r"<arg_value>\s*(.*?)</arg_value>"
+            pattern = r"<parameter\b[^>]*>([\s\S]*?)</parameter>"
             values = re.findall(pattern, elem, re.DOTALL)
+
             for i, value in enumerate(values):
                 try:
                     int(value)

@@ -1,6 +1,7 @@
 from .model import ExtractStrategy, ExtractError
 from .python_extract import PythonStrategy
 from .tool_call_extract_1 import ToolCallStrategyFirst
+from .function_call_extract import FunctionCallStrategy
 
 
 def extract_code(llm_output: str) -> str:
@@ -15,7 +16,8 @@ def extract_code(llm_output: str) -> str:
     """
     strategies: list[ExtractStrategy] = [
         PythonStrategy(),
-        ToolCallStrategyFirst()
+        ToolCallStrategyFirst(),
+        FunctionCallStrategy()
     ]
     code: str = extraction(strategies, llm_output)
     if not code.strip():

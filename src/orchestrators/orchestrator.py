@@ -65,12 +65,20 @@ def orchestrateur(
     try:
         while (running):
             datas: LLmOutput = model.generate(curr_prompt)
+            print("\n\n=======LLM output======")
             print(datas.content)
+            print("===========\n\n")
 
             try:
+                print("\n\n======= Extracted ==========")
                 code = extract_code(datas.content)
+                print(code)
+                print("===========\n\n")
 
+                print("\n\n======= Sandbox output ==========")
                 ret_val = sandbox.execute(code)
+                print(ret_val)
+                print("===========\n\n")
                 if isinstance(ret_val, dict) and "ended" in ret_val.keys():
                     if ret_val["ended"] or ret_val["kill"]:
                         running = False
@@ -95,6 +103,7 @@ def orchestrateur(
                 retries = 0
                 curr_step += 1
             except ExtractError as e:
+                print("\n\n========== Extraction Error ===========\n\n")
                 retries += 1
                 curr_prompt += f"\nFor the provided input: {datas.content}"
                 curr_prompt += f"Erreur {e}"

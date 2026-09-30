@@ -10,7 +10,7 @@ def mbpp_agent() -> None:
     """
     Agent MBPP
     """
-    start_time = time.time()
+    start_time = time.perf_counter()
     parser: argparse.Namespace = parse_args()
     if not analyse_args(parser):
         print("The arguments entered are invalid.")

@@ -27,16 +27,11 @@ You follow this loop:
 Important rules:
 
 - Always output executable Python code.
-- Do not wrap the code in Markdown.
-- Do not explain the code outside of the Python code.
-- Do not call tools using a special tool-call syntax.
-Toolsare normal Python functions.
 - Store useful results in variables if they may be needed later.
 - You have a persistent Python namespace between executions.
 - Use the available tools instead of assuming information
 you have not inspected.
 - If an operation fails, inspect the error and adapt your next action.
-- Do not stop after the first tool call if more work is required.
 - When the task is complete, call: final_answer
 
 Available tools:
