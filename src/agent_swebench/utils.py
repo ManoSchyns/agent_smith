@@ -6,6 +6,7 @@ import time
 import subprocess
 from pathlib import Path
 import docker
+from docker.models.containers import Container
 import os
 
 
@@ -88,7 +89,7 @@ def get_solution_output(orchest_output: dict,
     )
 
 
-def export_scipt(script: str, container) -> None:
+def export_scipt(script: str, container: Container) -> None:
     """
     Export the script to its file
 
@@ -104,13 +105,11 @@ def export_scipt(script: str, container) -> None:
             file.write(script)
 
         subprocess.run(
-            ["chmod","u+x", SCIPT_PATH.absolute()]
-            )
-    
+            ["chmod", "u+x", SCIPT_PATH.absolute()])
+
         subprocess.run(
-            ["docker", "cp", SCIPT_PATH.absolute(), f"{container.id}:."]   
+            ["docker", "cp", SCIPT_PATH.absolute(), f"{container.id}:."]
         )
-    
 
     except (FileExistsError, FileNotFoundError,
             UnicodeDecodeError,
@@ -118,12 +117,12 @@ def export_scipt(script: str, container) -> None:
         raise SWEBENCHError(f"The script could not be exported. {e}")
 
 
-def start_docker(image: str) -> None:
+def start_docker(image: str) -> Container:
     """
-    Lance le conteneur de l'image
+    Starts the container for the image
 
-    Arg:
-        image (str): l'image docker
+    Args:
+        image (str): the Docker image
     """
     client = docker.from_env()
 
@@ -136,11 +135,18 @@ def start_docker(image: str) -> None:
     container.exec_run(
         ["python", "-m", "pip", "install", "pytest"]
     )
+    if not container.id:
+        raise SWEBENCHError("Error during container setup")
+
     os.environ["CONTAINER_ID"] = container.id
 
     return container
 
-def stop_docker(container) -> None:
+
+def stop_docker(container: Container) -> None:
+    """
+    Stop the container
+    """
     container.stop()
     container.remove(force=True)
 

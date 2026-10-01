@@ -4,7 +4,10 @@ import os
 import fnmatch
 
 
-def get_container_id():
+def get_container_id() -> str | None:
+    """
+    Retrieve the container ID from the environment.
+    """
     try:
         return os.environ["CONTAINER_ID"]
     except KeyError:
@@ -27,13 +30,15 @@ def read_file_tool(filepath: str, start_line: int, end_line: int) -> str:
     if start_line < 0 or end_line < 0:
         return json.dumps({
             "success": False,
-            "output": "Error: start_line and end_line must be positive integers"
+            "output": ("Error: start_line and end_line"
+                       "must be positive integers")
         })
 
     if start_line > end_line:
         return json.dumps({
             "success": False,
-            "output": "Error: start_line must be lower than or equal to end_line"
+            "output": ("Error: start_line must be lower than "
+                       "or equal to end_line")
         })
 
     container_id = get_container_id()
@@ -101,7 +106,6 @@ def edit_file_tool(filepath: str, old_str: str, new_str: str) -> str:
             "output": "Unable to get the id of the docker"
         })
 
-    # Read the file from the container.
     result = subprocess.run(
         [
             "docker",
@@ -130,7 +134,6 @@ def edit_file_tool(filepath: str, old_str: str, new_str: str) -> str:
 
     new_content = content.replace(old_str, new_str)
 
-    # Use stdin to send the modified content to the container.
     result = subprocess.run(
         [
             "docker",

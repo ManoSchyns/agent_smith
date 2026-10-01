@@ -1,6 +1,5 @@
 import subprocess
 import json
-from pathlib import Path
 import os
 
 
@@ -76,8 +75,6 @@ def run_command_tool(command: str, workdir: str) -> str:
             "success": False,
             "output": "Unable to get the id of the docker"
         })
-
-   
 
     result = subprocess.run(
         ["docker", "exec", "-w", workdir, ID, command],

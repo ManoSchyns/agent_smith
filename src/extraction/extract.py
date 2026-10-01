@@ -1,7 +1,12 @@
 from .model import ExtractStrategy, ExtractError
 from .python_extract import PythonStrategy
-from .tool_call_extract_1 import ToolCallStrategyFirst
 from .function_call_extract import FunctionCallStrategy
+from .json_call_extract import JSONToolCallStrategy
+from .tool_call_extract import ToolCallStartEndStrategy
+from .xml_extract import XMLToolCallStrategy
+from .json_call_extract_2 import JSONFunctionCallStrategy
+from .json_call_extract_3 import JSONStepsStrategy
+from .json_call_extract_4 import JSONActionStrategy
 
 
 def extract_code(llm_output: str) -> str:
@@ -16,8 +21,13 @@ def extract_code(llm_output: str) -> str:
     """
     strategies: list[ExtractStrategy] = [
         PythonStrategy(),
-        ToolCallStrategyFirst(),
-        FunctionCallStrategy()
+        FunctionCallStrategy(),
+        JSONToolCallStrategy(),
+        ToolCallStartEndStrategy(),
+        XMLToolCallStrategy(),
+        JSONFunctionCallStrategy(),
+        JSONStepsStrategy(),
+        JSONActionStrategy()
     ]
     code: str = extraction(strategies, llm_output)
     if not code.strip():

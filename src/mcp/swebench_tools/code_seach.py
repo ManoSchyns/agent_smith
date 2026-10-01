@@ -7,6 +7,9 @@ from .file_system import list_files_tool
 
 
 def get_container_id() -> str | None:
+    """
+    Retrieve the container ID from the environment.
+    """
     try:
         return os.environ["CONTAINER_ID"]
     except KeyError:
@@ -123,33 +126,33 @@ def search_function_or_class_definition_in_code_tool(name: str) -> str:
     })
 
 
-def find_references_tool(
-    name: str,
-    filepath: str,
-    line: int
-) -> str:
+def find_references_tool(name: str, filepath: str, line: int) -> str:
     """
-    Finds all uses of a class or function.
-    """
+    Finds all uses of a class or function defined by the name name
 
-    origin = get_orginal_ast_obj(
-        name,
-        filepath,
-        line
-    )
+    Arguments:
+        name (str): the name of the function/class
+        filepath (str): the path to where the class is located
+        line (int): the line number where it is located
+
+    Return:
+        A JSON object with the result indicating whether
+            it was successful or not.
+    """
+    origin: (
+        ast.ClassDef | ast.AsyncFunctionDef
+        | ast.FunctionDef | None
+        ) = get_orginal_ast_obj(name, filepath, line)
 
     if origin is None:
         return json.dumps({
-            "success": False,
-            "output": (
-                f"The function or class {name} does not exist "
+                "success": False,
+                "output": f"The function or class {name} does not exist "
                 f"in the file {filepath} "
                 f"and on line {line}"
-            )
-        })
+            })
 
     datas = json.loads(list_files_tool("", "*.py"))
-
     if not datas["success"]:
         return json.dumps({
             "success": False,
@@ -170,45 +173,41 @@ def find_references_tool(
         except SyntaxError:
             continue
 
-        lines = content.splitlines()
+        splited_content = content.splitlines()
 
-        imported = file_name == filepath
+        tmp_found: list[str] = []
+        imported: bool = False
+        if file_name == filepath:
+            imported = True
 
         for node in ast.walk(tree):
-
-            if isinstance(node, (ast.Import, ast.ImportFrom)):
+            if isinstance(node, (ast.Import, ast.ImportFrom)) and not imported:
                 for alias in node.names:
                     if alias.name == origin.name:
                         imported = True
 
             if (
-                isinstance(
-                    origin,
-                    (
-                        ast.AsyncFunctionDef,
-                        ast.FunctionDef
-                    )
-                )
+                isinstance(origin, (ast.AsyncFunctionDef, ast.FunctionDef))
                 and is_ref_funct(origin, node)
             ):
                 if isinstance(node, (ast.Call, ast.Name)):
-                    ret_val.append(
+                    tmp_found.append(
                         f"{file_name}:{node.lineno} "
-                        f"{lines[node.lineno - 1]}"
+                        f"{splited_content[node.lineno - 1]}"
                     )
 
             elif (
                 isinstance(origin, ast.ClassDef)
                 and is_ref_class(origin, node)
             ):
-                if isinstance(
-                    node,
-                    (ast.Call, ast.Name, ast.ClassDef)
-                ):
-                    ret_val.append(
+                if isinstance(node, (ast.Call, ast.Name, ast.ClassDef)):
+                    tmp_found.append(
                         f"{file_name}:{node.lineno} "
-                        f"{lines[node.lineno - 1]}"
+                        f"{splited_content[node.lineno - 1]}"
                     )
+
+        if imported:
+            ret_val.extend(tmp_found)
 
     return json.dumps({
         "success": True,
@@ -216,52 +215,49 @@ def find_references_tool(
     })
 
 
-def is_ref_funct(
-    ref: ast.FunctionDef | ast.AsyncFunctionDef,
-    node: ast.AST
-) -> bool:
+def is_ref_funct(ref: ast.FunctionDef | ast.AsyncFunctionDef,
+                 node: ast.AST) -> bool:
     """
-    Indicates whether the node is a reference to the function.
-    """
+    Indicates whether the node is a reference to the ref function.
 
+    Argument:
+        ref(ast.ClassDef):: the base reference
+        node(ast.AST):: the node to check
+
+    Return:
+        True if it is indeed a reference
+        False otherwise
+    """
     if isinstance(node, ast.Call):
-        if (
-            isinstance(node.func, ast.Attribute)
-            and node.func.attr == ref.name
-        ):
+        if isinstance(node.func, ast.Attribute) and node.func.attr == ref.name:
             return True
-
     elif (
         isinstance(node, ast.Name)
         and node.id == ref.name
         and isinstance(node.ctx, ast.Load)
     ):
         return True
-
     return False
 
 
-def is_ref_class(
-    ref: ast.ClassDef,
-    node: ast.AST
-) -> bool:
+def is_ref_class(ref: ast.ClassDef, node: ast.AST) -> bool:
     """
-    Indicates whether the node is a reference to the class.
-    """
+    Indicates whether the node is a reference to the ref class.
 
+    Argument:
+        ref(ast.ClassDef):: the base reference
+        node(ast.AST):: the node to check
+
+    Return:
+        True if it is indeed a reference
+        False otherwise
+    """
     if isinstance(node, ast.Call):
-        if (
-            isinstance(node.func, ast.Name)
-            and node.func.id == ref.name
-        ):
+        if isinstance(node.func, ast.Name) and node.func.id == ref.name:
             return True
-
     elif isinstance(node, ast.ClassDef):
         for base in node.bases:
-            if (
-                isinstance(base, ast.Name)
-                and base.id == ref.name
-            ):
+            if isinstance(base, ast.Name) and base.id == ref.name:
                 return True
 
     elif (
@@ -270,44 +266,41 @@ def is_ref_class(
         and isinstance(node.ctx, ast.Load)
     ):
         return True
-
     return False
 
 
-def get_orginal_ast_obj(
-    name: str,
-    filepath: str,
-    line: int
-) -> (
-    ast.AsyncFunctionDef
-    | ast.FunctionDef
-    | ast.ClassDef
-    | None
-):
-    """
-    Retrieve the AST object corresponding to the searched object.
-    """
-
-    content = read_container_file(filepath)
-
-    if content is None:
-        return None
-
-    try:
-        tree = ast.parse(content)
-    except SyntaxError:
-        return None
-
-    for node in ast.walk(tree):
-        if isinstance(
-            node,
-            (
-                ast.FunctionDef,
-                ast.ClassDef,
-                ast.AsyncFunctionDef
-            )
+def get_orginal_ast_obj(name: str, filepath: str, line: int) -> (
+        ast.AsyncFunctionDef
+        | ast.FunctionDef
+        | ast.ClassDef
+        | None
         ):
-            if node.lineno == line and node.name == name:
-                return node
+    """
+    Retrieve the AST object corresponding to the searched object
 
-    return None
+    Args:
+        name (str): the name of the searched resource
+        filepath (str): the path to the file
+        line (int): the line number in the file
+
+    Return:
+        ast.AST: The AST object corresponding to the search
+        None if not found
+    """
+    try:
+        content = read_container_file(filepath)
+        if content is None:
+            return None
+
+        tree = ast.parse(content)
+        for node in ast.walk(tree):
+            if isinstance(
+                node, (ast.FunctionDef, ast.ClassDef,
+                       ast.AsyncFunctionDef)
+            ):
+                if node.lineno == line and node.name == name:
+                    return node
+        return None
+    except (FileNotFoundError, PermissionError,
+            UnicodeDecodeError, SyntaxError):
+        return None

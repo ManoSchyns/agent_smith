@@ -29,7 +29,6 @@ def orchestrateur(
     if type == "swebench":
         file_path = "mcp_tools_swebench.py"
 
-
     try:
         # On charge le model
         model = PROVIDER[provider_url](model_name=model_name)

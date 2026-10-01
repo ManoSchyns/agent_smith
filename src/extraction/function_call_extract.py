@@ -1,56 +1,65 @@
+import ast
 import re
+
 from .model import ExtractStrategy
 
 
 class FunctionCallStrategy(ExtractStrategy):
 
-    """Function Call Strategy for extraction"""
+    """Function Call Strategy for extraction."""
+
+    FUNCTION_CALL_PATTERN = re.compile(
+        r"<function_calls>\s*(.*?)</function_calls>",
+        re.DOTALL,
+    )
+
+    FUNCTION_NAME_PATTERN = re.compile(
+        r'<function\s*=\s*"([^"]+)"',
+    )
+
+    PARAMETER_PATTERN = re.compile(
+        r"<parameter\b[^>]*>\s*(.*?)\s*</parameter>",
+        re.DOTALL,
+    )
 
     def can_extract(self, llm_output: str) -> bool:
-        """
-        Is the output of the LLM enclosed in Function call code?
-        """
-        pattern: str = r"<function_calls>\s*.*?</function_calls>"
-
-        if re.search(pattern, llm_output, re.DOTALL):
-            return True
-
-        return False
+        """Return True if the output contains function calls."""
+        return self.FUNCTION_CALL_PATTERN.search(llm_output) is not None
 
     def extract(self, llm_output: str) -> str:
-        """Extracts the Function call code from the LLM output"""
-
-        if not self.can_extract(llm_output):
-            return ""
+        """Extract function calls from the LLM output."""
 
         tools: list[str] = []
 
-        pattern: str = r"<function_calls>\s*(.*?)</function_calls>"
-        codes = re.findall(pattern, llm_output, re.DOTALL)
-        for elem in codes:
-            if not elem:
+        for elem in self.FUNCTION_CALL_PATTERN.findall(llm_output):
+            function_match = self.FUNCTION_NAME_PATTERN.search(elem)
+
+            if function_match is None:
                 continue
 
-            curr_tool: str = ""
-            curr_tool += elem.splitlines()[0].split('"')[1]
-            curr_tool += "("
+            function_name = function_match.group(1).strip()
 
-            pattern = r"<parameter\b[^>]*>([\s\S]*?)</parameter>"
-            values = re.findall(pattern, elem, re.DOTALL)
+            values = self.PARAMETER_PATTERN.findall(elem)
 
-            for i, value in enumerate(values):
-                try:
-                    int(value)
-                    curr_tool += value
-                except (TypeError, ValueError):
-                    if value[0] == '[':
-                        curr_tool += value
-                    else:
-                        curr_tool += str(value)
-                if i < len(values) - 1:
-                    curr_tool += ","
+            arguments = [
+                self._format_argument(value)
+                for value in values
+            ]
 
-            curr_tool += ")"
-            tools.append(curr_tool)
+            tools.append(
+                f"{function_name}({', '.join(arguments)})"
+            )
 
         return "\n".join(tools)
+
+    @staticmethod
+    def _format_argument(value: str) -> str:
+        """Format a parameter as valid Python syntax."""
+
+        value = value.strip()
+
+        try:
+            ast.literal_eval(value)
+            return value
+        except (ValueError, SyntaxError):
+            return repr(value)
